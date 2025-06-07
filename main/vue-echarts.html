@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue 3 + ECharts 5 数据可视化示例</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f7fa;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      color: #2c3e50;
+      font-size: 2rem;
+    }
+    .charts-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    .chart-box {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+      padding: 20px;
+      transition: all 0.3s;
+    }
+    .chart-box:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px 0 rgba(0, 0, 0, 0.1);
+    }
+    .full-width {
+      width: 100%;
+      margin-bottom: 20px;
+    }
+    .half-width {
+      width: calc(50% - 10px);
+    }
+    .chart-title {
+      font-size: 1.2rem;
+      color: #2c3e50;
+      margin-bottom: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chart {
+      height: 350px;
+    }
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .control-item {
+      background: white;
+      padding: 10px 15px;
+      border-radius: 6px;
+      box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.1);
+    }
+    select, input {
+      border: 1px solid #dcdfe6;
+      border-radius: 4px;
+      padding: 8px 12px;
+      margin-left: 10px;
+    }
+    button {
+      background: #409eff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    .theme-switch {
+      display: flex;
+      align-items: center;
+    }
+    .theme-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      margin-right: 5px;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .theme-btn.active {
+      border-color: #409eff;
+    }
+    @media (max-width: 768px) {
+      .charts-container {
+        flex-direction: column;
+      }
+      .half-width {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="header">
+      <h1>Vue 3 + ECharts 5 数据可视化平台</h1>
+      <p>使用Vue 3和ECharts 5实现多种复杂图表展示</p>
+    </div>
+    
+    <div class="controls">
+      <div class="control-item">
+        <label for="date-range">时间范围:</label>
+        <select id="date-range" v-model="dateRange">
+          <option value="7">最近7天</option>
+          <option value="30">最近30天</option>
+          <option value="90">最近90天</option>
+          <option value="365">最近一年</option>
+        </select>
+      </div>
+      <div class="control-item">
+        <label for="data-type">数据类型:</label>
+        <select id="data-type" v-model="dataType">
+          <option value="sales">销售额</option>
+          <option value="traffic">流量</option>
+          <option value="users">用户数</option>
+        </select>
+      </div>
+      <div class="control-item theme-switch">
+        <span>主题:</span>
+        <div 
+          v-for="(theme, index) in themes" 
+          :key="index"
+          class="theme-btn"
+          :class="{active: currentTheme === theme.value}"
+          :style="{backgroundColor: theme.color}"
+          @click="changeTheme(theme.value)"
+        ></div>
+      </div>
+      <div class="control-item">
+        <button @click="refreshData">刷新数据</button>
+      </div>
+    </div>
+    
+    <div class="charts-container">
+      <div class="chart-box full-width">
+        <div class="chart-title">
+          <span>{{ chartTitles.lineChart }}</span>
+          <select v-model="lineChartType">
+            <option value="smooth">平滑曲线</option>
+            <option value="line">折线图</option>
+            <option value="area">面积图</option>
+          </select>
+        </div>
+        <div class="chart" id="lineChart"></div>
+      </div>
+      
+      <div class="chart-box half-width">
+        <div class="chart-title">
+          <span>{{ chartTitles.pieChart }}</span>
+        </div>
+        <div class="chart" id="pieChart"></div>
+      </div>
+      
+      <div class="chart-box half-width">
+        <div class="chart-title">
+          <span>{{ chartTitles.barChart }}</span>
+        </div>
+        <div class="chart" id="barChart"></div>
+      </div>
+      
+      <div class="chart-box full-width">
+        <div class="chart-title">
+          <span>{{ chartTitles.scatterChart }}</span>
+        </div>
+        <div class="chart" id="scatterChart"></div>
+      </div>
+      
+      <div class="chart-box full-width">
+        <div class="chart-title">
+          <span>{{ chartTitles.radarChart }}</span>
+        </div>
+        <div class="chart" id="radarChart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- 引入 ECharts 5 -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  
+  <script>
+    // 确保依赖已加载
+    console.log('Vue版本:', Vue.version);
+    console.log('ECharts版本:', echarts.version);
+    
+    const { createApp, ref, reactive, watch, onMounted } = Vue;
+    
+    const app = createApp({
+      setup() {
+        // 响应式状态
+        const dateRange = ref('30');
+        const dataType = ref('sales');
+        const lineChartType = ref('smooth');
+        const currentTheme = ref('default');
+        
+        // 图表实例对象
+        let lineChart = null;
+        let pieChart = null;
+        let barChart = null;
+        let scatterChart = null;
+        let radarChart = null;
+        
+        // 图表标题
+        const chartTitles = reactive({
+          lineChart: '趋势分析',
+          pieChart: '类别占比',
+          barChart: '区域分布',
+          scatterChart: '相关性分析',
+          radarChart: '多维分析'
+        });
+        
+        // 可选主题
+        const themes = [
+          { value: 'default', name: '默认', color: '#5470c6' },
+          { value: 'dark', name: '暗色', color: '#333' },
+          { value: 'vintage', name: '复古', color: '#d87c7c' },
+          { value: 'westeros', name: '清新', color: '#516b91' },
+          { value: 'essos', name: '温暖', color: '#893448' },
+        ];
+        
+        // 模拟数据生成函数
+        function generateData() {
+          // 基于时间范围和类型生成数据
+          const days = parseInt(dateRange.value);
+          const type = dataType.value;
+          
+          // 时间轴数据
+          const dates = [];
+          const now = new Date();
+          for (let i = days - 1; i >= 0; i--) {
+            const date = new Date(now);
+            date.setDate(now.getDate() - i);
+            dates.push(date.toISOString().split('T')[0]);
+          }
+          
+          // 数据系列
+          let multiplier = 1;
+          let dataLabel = '';
+          
+          if (type === 'sales') {
+            multiplier = 10000;
+            dataLabel = '销售额(元)';
+          } else if (type === 'traffic') {
+            multiplier = 500;
+            dataLabel = '访问量(PV)';
+          } else {
+            multiplier = 200;
+            dataLabel = '用户数';
+          }
+          
+          // 生成线图数据
+          const lineData = dates.map(() => Math.floor(Math.random() * multiplier + multiplier / 2));
+          
+          // 生成饼图数据
+          const categories = ['产品A', '产品B', '产品C', '产品D', '产品E'];
+          const pieData = categories.map(name => ({
+            name,
+            value: Math.floor(Math.random() * multiplier)
+          }));
+          
+          // 生成柱状图数据
+          const regions = ['东部', '南部', '西部', '北部', '中部'];
+          const barData = regions.map(region => ({
+            name: region,
+            value: Math.floor(Math.random() * multiplier)
+          }));
+          
+          // 生成散点图数据
+          const scatterData = [];
+          for (let i = 0; i < 50; i++) {
+            const x = Math.random() * 100;
+            const y = Math.random() * multiplier;
+            scatterData.push([x, y]);
+          }
+          
+          // 生成雷达图数据
+          const indicators = [
+            { name: '销售', max: 100 },
+            { name: '管理', max: 100 },
+            { name: '信息技术', max: 100 },
+            { name: '客服', max: 100 },
+            { name: '研发', max: 100 },
+            { name: '市场', max: 100 }
+          ];
+          
+          const radarData = [
+            {
+              name: '2023年',
+              value: [80, 65, 90, 75, 85, 70]
+            },
+            {
+              name: '2024年',
+              value: [90, 80, 95, 85, 70, 90]
+            },
+            {
+              name: '2025年',
+              value: [100, 280, 95, 2285, 34570, 1290]
+            }
+          ];
+          
+          return {
+            dates,
+            lineData,
+            pieData,
+            barData,
+            scatterData,
+            dataLabel,
+            indicators,
+            radarData,
+            categories,
+            regions
+          };
+        }
+        
+        // 初始化线图
+        function initLineChart() {
+          if (!lineChart) {
+            lineChart = echarts.init(document.getElementById('lineChart'));
+          }
+          
+          const data = generateData();
+          const option = {
+            title: {
+              text: chartTitles.lineChart
+            },
+            tooltip: {
+              trigger: 'axis'
+            },
+            xAxis: {
+              type: 'category',
+              data: data.dates
+            },
+            yAxis: {
+              type: 'value',
+              name: data.dataLabel
+            },
+            series: [
+              {
+                name: data.dataLabel,
+                type: lineChartType.value === 'area' ? 'line' : lineChartType.value,
+                smooth: lineChartType.value === 'smooth',
+                areaStyle: lineChartType.value === 'area' ? {} : null,
+                data: data.lineData
+              }
+            ]
+          };
+          lineChart.setOption(option);
+        }
+        
+        // 初始化饼图
+        function initPieChart() {
+          if (!pieChart) {
+            pieChart = echarts.init(document.getElementById('pieChart'));
+          }
+          
+          const data = generateData();
+          const option = {
+            title: {
+              text: chartTitles.pieChart
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: '{a} <br/>{b}: {c} ({d}%)'
+            },
+            legend: {
+              orient: 'vertical',
+              left: 10,
+              data: data.categories
+            },
+            series: [
+              {
+                name: '产品分布',
+                type: 'pie',
+                radius: '55%',
+                center: ['50%', '50%'],
+                data: data.pieData,
+                emphasis: {
+                  itemStyle: {
+                    shadowBlur: 10,
+                    shadowOffsetX: 0,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                  }
+                }
+              }
+            ]
+          };
+          pieChart.setOption(option);
+        }
+        
+        // 初始化柱状图
+        function initBarChart() {
+          if (!barChart) {
+            barChart = echarts.init(document.getElementById('barChart'));
+          }
+          
+          const data = generateData();
+          const option = {
+            title: {
+              text: chartTitles.barChart
+            },
+            tooltip: {
+              trigger: 'axis',
+              axisPointer: {
+                type: 'shadow'
+              }
+            },
+            xAxis: {
+              type: 'category',
+              data: data.regions
+            },
+            yAxis: {
+              type: 'value',
+              name: data.dataLabel
+            },
+            series: [
+              {
+                name: data.dataLabel,
+                type: 'bar',
+                data: data.barData.map(item => item.value)
+              }
+            ]
+          };
+          barChart.setOption(option);
+        }
+        
+        // 初始化散点图
+        function initScatterChart() {
+          if (!scatterChart) {
+            scatterChart = echarts.init(document.getElementById('scatterChart'));
+          }
+          
+          const data = generateData();
+          const option = {
+            title: {
+              text: chartTitles.scatterChart
+            },
+            xAxis: {
+              name: '指标X',
+              splitLine: {
+                lineStyle: {
+                  type: 'dashed'
+                }
+              }
+            },
+            yAxis: {
+              name: data.dataLabel,
+              splitLine: {
+                lineStyle: {
+                  type: 'dashed'
+                }
+              }
+            },
+            tooltip: {
+              trigger: 'item',
+              formatter: function(params) {
+                return '指标X: ' + params.value[0].toFixed(2) + '<br/>' +
+                       data.dataLabel + ': ' + params.value[1].toFixed(2);
+              }
+            },
+            series: [
+              {
+                name: '散点数据',
+                type: 'scatter',
+                symbolSize: 10,
+                data: data.scatterData
+              }
+            ]
+          };
+          scatterChart.setOption(option);
+        }
+        
+        // 初始化雷达图
+        function initRadarChart() {
+          if (!radarChart) {
+            radarChart = echarts.init(document.getElementById('radarChart'));
+          }
+          
+          const data = generateData();
+          const option = {
+            title: {
+              text: chartTitles.radarChart
+            },
+            tooltip: {
+              trigger: 'item'
+            },
+            legend: {
+              data: ['2023年', '2024年','2025年']
+            },
+            radar: {
+              indicator: data.indicators
+            },
+            series: [
+              {
+                type: 'radar',
+                data: data.radarData
+              }
+            ]
+          };
+          radarChart.setOption(option);
+        }
+        
+        // 更改主题
+        function changeTheme(theme) {
+          currentTheme.value = theme;
+          // 在实际应用中，这里应该加载并应用对应的主题
+          refreshCharts();
+        }
+        
+        // 刷新所有图表
+        function refreshCharts() {
+          initLineChart();
+          initPieChart();
+          initBarChart();
+          initScatterChart();
+          initRadarChart();
+        }
+        
+        // 刷新数据按钮
+        function refreshData() {
+          refreshCharts();
+        }
+        
+        // 监听数据变化
+        watch([dateRange, dataType, lineChartType], () => {
+          refreshCharts();
+        });
+        
+        // 组件挂载后初始化图表
+        onMounted(() => {
+          refreshCharts();
+          
+          // 添加窗口大小变化时自动调整图表大小
+          window.addEventListener('resize', () => {
+            lineChart?.resize();
+            pieChart?.resize();
+            barChart?.resize();
+            scatterChart?.resize();
+            radarChart?.resize();
+          });
+        });
+        
+        // 暴露给模板使用的数据和方法
+        return {
+          dateRange,
+          dataType,
+          lineChartType,
+          currentTheme,
+          chartTitles,
+          themes,
+          changeTheme,
+          refreshData
+        };
+      }
+    });
+    
+    // 挂载Vue应用
+    app.mount('#app');
+  </script>
+</body>
+</html>

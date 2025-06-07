@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>终端模拟器</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Monaco", "Menlo", "Consolas", monospace;
+    }
+    
+    body {
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .terminal-container {
+      flex: 1;
+      background-color: #282a36;
+      border-radius: 5px;
+      padding: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .terminal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      background-color: #191a21;
+      border-radius: 5px;
+      padding: 8px 12px;
+    }
+    
+    .terminal-title {
+      display: flex;
+      align-items: center;
+    }
+    
+    .terminal-icon {
+      margin-right: 10px;
+      font-size: 18px;
+    }
+    
+    .terminal-controls {
+      display: flex;
+    }
+    
+    .control {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 8px;
+    }
+    
+    .close {
+      background-color: #ff5f56;
+    }
+    
+    .minimize {
+      background-color: #ffbd2e;
+    }
+    
+    .maximize {
+      background-color: #27c93f;
+    }
+    
+    .terminal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 5px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .command-line {
+      display: flex;
+      margin: 5px 0;
+    }
+    
+    .prompt {
+      color: #50fa7b;
+      margin-right: 8px;
+      white-space: nowrap;
+    }
+    
+    .hostname {
+      color: #bd93f9;
+    }
+    
+    .path {
+      color: #8be9fd;
+    }
+    
+    .command-input {
+      flex: 1;
+      background: transparent;
+      color: #f8f8f2;
+      border: none;
+      outline: none;
+      font-size: inherit;
+      font-family: inherit;
+    }
+    
+    .output-line {
+      padding: 2px 0;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .output-line.error {
+      color: #ff5555;
+    }
+    
+    .output-line.success {
+      color: #50fa7b;
+    }
+    
+    .output-line.info {
+      color: #f1fa8c;
+    }
+    
+    .output-line.warning {
+      color: #ffb86c;
+    }
+    
+    .output-line.system {
+      color: #6272a4;
+      font-style: italic;
+    }
+    
+    /* 自定义滚动条 */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: #44475a;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: #6272a4;
+      border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: #bd93f9;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="terminal-container">
+      <div class="terminal-header">
+        <div class="terminal-title">
+          <span class="terminal-icon">⌘</span>
+          <span>ZSH 模拟终端</span>
+        </div>
+        <div class="terminal-controls">
+          <div class="control minimize"></div>
+          <div class="control maximize"></div>
+          <div class="control close"></div>
+        </div>
+      </div>
+      <div class="terminal-body" id="terminal-body" ref="terminalBody">
+        <div class="welcome-message output-line info">
+          欢迎使用ZSH模拟终端 v1.0.0
+          输入"help"查看可用命令列表
+        </div>
+        
+        <div v-for="(entry, index) in commandHistory" :key="index">
+          <!-- 命令输入区域 -->
+          <div class="command-line">
+            <div class="prompt">
+              <span class="username">user</span>
+              <span>@</span>
+              <span class="hostname">vue-terminal</span>
+              <span>:</span>
+              <span class="path">{{entry.path}}</span>
+              <span> $ </span>
+            </div>
+            <div class="command-text">{{entry.command}}</div>
+          </div>
+          
+          <!-- 命令输出区域 -->
+          <div class="output-area">
+            <div v-for="(line, lineIndex) in entry.output" :key="lineIndex"
+                 :class="['output-line', line.type]">
+              {{line.text}}
+            </div>
+          </div>
+        </div>
+        
+        <!-- 当前命令输入区域 -->
+        <div class="command-line">
+          <div class="prompt">
+            <span class="username">user</span>
+            <span>@</span>
+            <span class="hostname">vue-terminal</span>
+            <span>:</span>
+            <span class="path">{{currentPath}}</span>
+            <span> $ </span>
+          </div>
+          <input ref="commandInput"
+                 type="text"
+                 class="command-input"
+                 v-model="currentCommand"
+                 @keydown="handleKeydown"
+                 spellcheck="false"
+                 autocomplete="off">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script>
+    const { createApp, ref, reactive, computed, nextTick, onMounted } = Vue;
+    
+    createApp({
+      setup() {
+        // 基本状态管理
+        const currentCommand = ref('');
+        const commandHistory = ref([]);
+        const historyIndex = ref(-1);
+        const commandBuffer = ref('');
+        const terminalBody = ref(null);
+        const commandInput = ref(null);
+        
+        // 文件系统模拟
+        const fileSystem = reactive({
+          '/': {
+            type: 'directory',
+            created: Date.now(),
+            children: {
+              'home': {
+                type: 'directory',
+                created: Date.now(),
+                children: {
+                  'user': {
+                    type: 'directory',
+                    created: Date.now(),
+                    children: {
+                      'documents': {
+                        type: 'directory',
+                        created: Date.now(),
+                        children: {
+                          'notes.txt': {
+                            type: 'file',
+                            content: '这是一个示例文本文件。\n可以使用cat命令查看内容。',
+                            created: Date.now(),
+                            modified: Date.now(),
+                            size: 56,
+                          },
+                          'todo.md': {
+                            type: 'file',
+                            content: '# 待办事项\n\n- [x] 创建终端模拟器\n- [ ] 实现更多命令\n- [ ] 添加网络模拟功能',
+                            created: Date.now(),
+                            modified: Date.now(),
+                            size: 82,
+                          }
+                        }
+                      },
+                      'downloads': {
+                        type: 'directory',
+                        created: Date.now(),
+                        children: {}
+                      },
+                      'projects': {
+                        type: 'directory',
+                        created: Date.now(),
+                        children: {
+                          'vue-demo': {
+                            type: 'directory',
+                            created: Date.now(),
+                            children: {
+                              'index.html': {
+                                type: 'file',
+                                content: '<!DOCTYPE html>\n<html>\n<head>\n  <title>Vue Demo</title>\n</head>\n<body>\n  <div id="app"></div>\n</body>\n</html>',
+                                created: Date.now(),
+                                modified: Date.now(),
+                                size: 110,
+                              },
+                              'app.js': {
+                                type: 'file',
+                                content: 'const app = Vue.createApp({\n  data() {\n    return {\n      message: "Hello Vue!"\n    }\n  }\n});\n\napp.mount("#app");',
+                                created: Date.now(),
+                                modified: Date.now(),
+                                size: 120,
+                              }
+                            }
+                          }
+                        }
+                      },
+                      '.zshrc': {
+                        type: 'file',
+                        content: '# zsh配置文件\nexport PATH="$HOME/bin:/usr/local/bin:$PATH"\nalias ll="ls -la"\nalias cls="clear"',
+                        created: Date.now(),
+                        modified: Date.now(),
+                        size: 95,
+                      }
+                    }
+                  }
+                }
+              },
+              'usr': {
+                type: 'directory',
+                created: Date.now(),
+                children: {
+                  'bin': {
+                    type: 'directory',
+                    created: Date.now(),
+                    children: {}
+                  }
+                }
+              },
+              'etc': {
+                type: 'directory',
+                created: Date.now(),
+                children: {
+                  'hosts': {
+                    type: 'file',
+                    content: '127.0.0.1 localhost\n::1 localhost\n192.168.1.1 router',
+                    created: Date.now(),
+                    modified: Date.now(),
+                    size: 48,
+                  }
+                }
+              },
+              'var': {
+                type: 'directory',
+                created: Date.now(),
+                children: {
+                  'log': {
+                    type: 'directory',
+                    created: Date.now(),
+                    children: {
+                      'system.log': {
+                        type: 'file',
+                        content: '[INFO] 系统启动\n[INFO] 所有服务正常运行',
+                        created: Date.now(),
+                        modified: Date.now(),
+                        size: 44,
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        });
+        
+        // 当前路径
+        const currentPath = ref('/home/user');
+        
+        // 获取当前目录
+        const getCurrentDirectory = () => {
+          const pathSegments = currentPath.value.split('/').filter(segment => segment);
+          let current = fileSystem['/'];
+          
+          for (const segment of pathSegments) {
+            if (current.children && current.children[segment]) {
+              current = current.children[segment];
+            } else {
+              return null;
+            }
+          }
+          
+          return current;
+        };
+        
+        // 获取路径对应的目录或文件
+        const getItemAtPath = (path) => {
+          if (path === '/') {
+            return fileSystem['/'];
+          }
+          
+          const isAbsolute = path.startsWith('/');
+          const resolvedPath = isAbsolute ? path : normalizePath(`${currentPath.value}/${path}`);
+          const pathSegments = resolvedPath.split('/').filter(segment => segment);
+          
+          let current = fileSystem['/'];
+          
+          for (const segment of pathSegments) {
+            if (segment === '..') {
+              // 跳转到父目录的逻辑在normalizePath中处理了
+              continue;
+            }
+            
+            if (current.children && current.children[segment]) {
+              current = current.children[segment];
+            } else {
+              return null;
+            }
+          }
+          
+          return current;
+        };
+        
+        // 标准化路径
+        const normalizePath = (path) => {
+          const segments = path.split('/').filter(Boolean);
+          const result = [];
+          
+          for (const segment of segments) {
+            if (segment === '..') {
+              result.pop();
+            } else if (segment !== '.') {
+              result.push(segment);
+            }
+          }
+          
+          return '/' + result.join('/');
+        };
+        
+        // 滚动到最新输出
+        const scrollToBottom = async () => {
+          await nextTick();
+          if (terminalBody.value) {
+            terminalBody.value.scrollTop = terminalBody.value.scrollHeight;
+          }
+        };
+        
+        // 聚焦输入框
+        const focusInput = async () => {
+          await nextTick();
+          if (commandInput.value) {
+            commandInput.value.focus();
+          }
+        };
+        
+        // 历史命令导航
+        const navigateHistory = (direction) => {
+          const historyLength = commandHistory.value.length;
+          
+          if (historyLength === 0) return;
+          
+          // 第一次按上键，保存当前输入
+          if (historyIndex.value === -1) {
+            commandBuffer.value = currentCommand.value;
+          }
+          
+          // 计算新的历史索引
+          historyIndex.value += direction;
+          
+          // 边界检查
+          if (historyIndex.value >= historyLength) {
+            historyIndex.value = historyLength - 1;
+          }
+          
+          if (historyIndex.value < -1) {
+            historyIndex.value = -1;
+          }
+          
+          // 设置命令
+          if (historyIndex.value === -1) {
+            currentCommand.value = commandBuffer.value;
+          } else {
+            currentCommand.value = commandHistory.value[historyIndex.value].command;
+          }
+        };
+        
+        // 处理Tab自动完成
+        const handleTabComplete = () => {
+          const args = currentCommand.value.split(' ');
+          const lastArg = args[args.length - 1];
+          
+          if (args[0] === 'cd' || args[0] === 'ls' || args[0] === 'cat') {
+            // 得到当前目录下的内容
+            const currentDir = getCurrentDirectory();
+            if (!currentDir || !currentDir.children) return;
+            
+            // 找到匹配的子项
+            const matches = Object.keys(currentDir.children).filter(name => name.startsWith(lastArg));
+            
+            if (matches.length === 1) {
+              // 如果只有一个匹配项，直接完成
+              args[args.length - 1] = matches[0];
+              currentCommand.value = args.join(' ');
+            } else if (matches.length > 1) {
+              // 多个匹配项时显示备选项
+              const entry = {
+                path: currentPath.value,
+                command: currentCommand.value,
+                output: matches.map(match => ({ text: match, type: '' }))
+              };
+              commandHistory.value.push(entry);
+              scrollToBottom();
+            }
+          }
+        };
+        
+        // 执行命令
+        const executeCommand = async () => {
+          const command = currentCommand.value.trim();
+          if (!command) return;
+          
+          console.log('Executing command:', command);
+          
+          const entry = {
+            path: currentPath.value,
+            command: command,
+            output: []
+          };
+          
+          commandHistory.value.push(entry);
+          currentCommand.value = '';
+          historyIndex.value = -1;
+          
+          // 处理命令
+          await processCommand(command, entry);
+          
+          await scrollToBottom();
+          await focusInput();
+        };
+        
+        // 命令处理器
+        const processCommand = async (command, entry) => {
+          const args = command.split(' ').filter(arg => arg.trim() !== '');
+          const cmd = args[0]?.toLowerCase();
+          
+          if (!cmd) return;
+          
+          console.log('Executing command:', cmd, args);
+          
+          switch (cmd) {
+            case 'help':
+              showHelp(entry);
+              break;
+            case 'ls':
+              listDirectory(args, entry);
+              break;
+            case 'cd':
+              changeDirectory(args, entry);
+              break;
+            case 'pwd':
+              printWorkingDirectory(entry);
+              break;
+            case 'cat':
+              catFile(args, entry);
+              break;
+            case 'echo':
+              echoText(args, entry);
+              break;
+            case 'clear':
+              clearTerminal();
+              break;
+            case 'date':
+              showDate(entry);
+              break;
+            case 'curl':
+              await curlCommand(args, entry);
+              break;
+            case 'history':
+              showHistory(entry);
+              break;
+            default:
+              entry.output.push({ text: `zsh: command not found: ${cmd}`, type: 'error' });
+          }
+        };
+        
+        // 处理键盘事件
+        const handleKeydown = (event) => {
+          if (event.key === 'Enter') {
+            executeCommand();
+          } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            navigateHistory(-1);
+          } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            navigateHistory(1);
+          } else if (event.key === 'Tab') {
+            event.preventDefault();
+            handleTabComplete();
+          }
+        };
+        
+        // 显示帮助信息
+        const showHelp = (entry) => {
+          entry.output.push({ text: '可用命令列表:', type: 'info' });
+          entry.output.push({ text: 'ls      - 列出目录内容', type: '' });
+          entry.output.push({ text: 'cd      - 切换目录', type: '' });
+          entry.output.push({ text: 'pwd     - 显示当前目录路径', type: '' });
+          entry.output.push({ text: 'cat     - 查看文件内容', type: '' });
+          entry.output.push({ text: 'echo    - 显示文本', type: '' });
+          entry.output.push({ text: 'clear   - 清空屏幕', type: '' });
+        };
+        
+        // 清空终端
+        const clearTerminal = () => {
+          commandHistory.value = [];
+        };
+        
+        // 列出目录内容
+        const listDirectory = (args, entry) => {
+          const dir = getCurrentDirectory();
+          if (!dir || !dir.children) {
+            entry.output.push({ text: '无法访问目录', type: 'error' });
+            return;
+          }
+          
+          const files = Object.keys(dir.children);
+          if (files.length === 0) {
+            entry.output.push({ text: '目录为空', type: '' });
+            return;
+          }
+          
+          files.sort().forEach(file => {
+            const item = dir.children[file];
+            const type = item.type === 'directory' ? 'info' : '';
+            const suffix = item.type === 'directory' ? '/' : '';
+            entry.output.push({ text: file + suffix, type });
+          });
+        };
+        
+        // 查看文件内容
+        const catFile = (args, entry) => {
+          if (args.length < 2) {
+            entry.output.push({ text: 'usage: cat <file>', type: 'error' });
+            return;
+          }
+          
+          const filename = args[1];
+          const dir = getCurrentDirectory();
+          
+          if (!dir || !dir.children || !dir.children[filename]) {
+            entry.output.push({ text: `文件不存在: ${filename}`, type: 'error' });
+            return;
+          }
+          
+          const file = dir.children[filename];
+          if (file.type !== 'file') {
+            entry.output.push({ text: `${filename} 不是文件`, type: 'error' });
+            return;
+          }
+          
+          entry.output.push({ text: file.content, type: '' });
+        };
+        
+        // 切换目录
+        const changeDirectory = (args, entry) => {
+          const path = args[1] || '~';
+          
+          if (path === '~') {
+            currentPath.value = '/home/user';
+            return;
+          }
+          
+          let newPath;
+          if (path.startsWith('/')) {
+            newPath = path;
+          } else if (path === '..') {
+            const segments = currentPath.value.split('/').filter(Boolean);
+            segments.pop();
+            newPath = '/' + segments.join('/');
+          } else {
+            newPath = currentPath.value === '/' ? 
+                    `/${path}` : 
+                    `${currentPath.value}/${path}`;
+          }
+          
+          const dir = getItemAtPath(newPath);
+          if (!dir) {
+            entry.output.push({ text: `目录不存在: ${path}`, type: 'error' });
+            return;
+          }
+          
+          if (dir.type !== 'directory') {
+            entry.output.push({ text: `${path} 不是目录`, type: 'error' });
+            return;
+          }
+          
+          currentPath.value = newPath;
+        };
+        
+        // 显示当前工作目录
+        const printWorkingDirectory = (entry) => {
+          entry.output.push({ text: currentPath.value, type: '' });
+        };
+        
+        // 显示文本
+        const echoText = (args, entry) => {
+          entry.output.push({ text: args.slice(1).join(' '), type: '' });
+        };
+        
+        // 显示当前日期和时间
+        const showDate = (entry) => {
+          const now = new Date();
+          entry.output.push({ text: now.toString(), type: '' });
+        };
+        
+        // 模拟 curl 命令
+        const curlCommand = async (args, entry) => {
+          if (args.length < 2) {
+            entry.output.push({ text: 'usage: curl <url>', type: 'error' });
+            return;
+          }
+          
+          const url = args[1];
+          entry.output.push({ text: `请求 ${url} 中...`, type: 'info' });
+          
+          // 模拟延迟
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          // 返回模拟数据
+          entry.output.push({ 
+            text: `<!DOCTYPE html>\n<html>\n<head>\n  <title>Example Domain</title>\n</head>\n<body>\n  <h1>Example Domain</h1>\n  <p>This domain is for use in examples.</p>\n</body>\n</html>`, 
+            type: '' 
+          });
+        };
+        
+        // 显示命令历史
+        const showHistory = (entry) => {
+          commandHistory.value.forEach((cmd, i) => {
+            entry.output.push({ text: `${i + 1}  ${cmd.command}`, type: '' });
+          });
+        };
+                
+        // 初始化
+        onMounted(() => {
+          focusInput();
+          
+          // 添加全局点击事件以重新聚焦输入框
+          document.addEventListener('click', focusInput);
+        });
+        
+        return {
+          currentCommand,
+          commandHistory,
+          terminalBody,
+          commandInput,
+          currentPath,
+          executeCommand,
+          handleKeydown,
+          navigateHistory,
+          handleTabComplete,
+          focusInput
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

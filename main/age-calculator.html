@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>年龄计算器</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f5f5;
+      color: #333;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background-color: #1890ff;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    .date-inputs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .input-group {
+      flex: 1;
+      min-width: 120px;
+    }
+    
+    .input-group label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+      color: #666;
+    }
+    
+    select, input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+    
+    select:focus, input:focus {
+      outline: none;
+      border-color: #40a9ff;
+      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    }
+    
+    .submit-btn {
+      background-color: #1890ff;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+    
+    .submit-btn:hover {
+      background-color: #40a9ff;
+    }
+    
+    .results {
+      margin-top: 30px;
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.3s;
+    }
+    
+    .result-item {
+      display: flex;
+      margin-bottom: 15px;
+      align-items: center;
+    }
+    
+    .result-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #e6f7ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 15px;
+      font-size: 20px;
+    }
+    
+    .result-label {
+      font-weight: 500;
+      margin-right: 10px;
+      color: #666;
+    }
+    
+    .result-value {
+      font-size: 18px;
+      font-weight: 600;
+      color: #1890ff;
+    }
+    
+    .zodiac-icon {
+      font-size: 32px;
+      margin-right: 10px;
+    }
+    
+    .hidden {
+      opacity: 0;
+      height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .footer {
+      padding: 15px;
+      text-align: center;
+      border-top: 1px solid #eee;
+      color: #999;
+      font-size: 14px;
+    }
+    
+    .error {
+      color: #ff4d4f;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+    
+    @media screen and (max-width: 600px) {
+      .date-inputs {
+        flex-direction: column;
+      }
+      
+      .input-group {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="header">
+        <h1>年龄计算器</h1>
+      </div>
+      
+      <div class="content">
+        <form @submit.prevent="calculateAge">
+          <div class="form-group">
+            <span class="form-label">请输入您的出生日期：</span>
+            <div class="date-inputs">
+              <div class="input-group">
+                <label for="year">年</label>
+                <select id="year" v-model="birthYear" required>
+                  <option value="">请选择</option>
+                  <option v-for="year in years" :key="year" :value="year">{{ year }}</option>
+                </select>
+              </div>
+              
+              <div class="input-group">
+                <label for="month">月</label>
+                <select id="month" v-model="birthMonth" required>
+                  <option value="">请选择</option>
+                  <option v-for="month in 12" :key="month" :value="month">{{ month }}</option>
+                </select>
+              </div>
+              
+              <div class="input-group">
+                <label for="day">日</label>
+                <select id="day" v-model="birthDay" required>
+                  <option value="">请选择</option>
+                  <option v-for="day in days" :key="day" :value="day">{{ day }}</option>
+                </select>
+                <div class="error" v-if="dayError">{{ dayError }}</div>
+              </div>
+            </div>
+          </div>
+          
+          <button type="submit" class="submit-btn">计算</button>
+        </form>
+        
+        <div class="results" :class="{ hidden: !showResults }">
+          <div class="result-item">
+            <div class="result-icon">🎂</div>
+            <span class="result-label">您已出生：</span>
+            <span class="result-value">{{ daysLived }}天</span>
+          </div>
+          
+          <div class="result-item">
+            <div class="result-icon">📅</div>
+            <span class="result-label">您的年龄：</span>
+            <span class="result-value">{{ age }}岁</span>
+          </div>
+          
+          <div class="result-item">
+            <div class="result-icon">
+              <span class="zodiac-icon">{{ zodiacEmoji }}</span>
+            </div>
+            <span class="result-label">您的生肖：</span>
+            <span class="result-value">{{ zodiacSign }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer">
+        © {{ currentYear }} 年龄计算器 | 精确计算您的出生天数、年龄和生肖
+      </div>
+    </div>
+  </div>
+  
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <script>
+    const { createApp, ref, computed, watch } = Vue;
+    
+    createApp({
+      setup() {
+        // 年份选项：从1900年到当前年
+        const currentYear = new Date().getFullYear();
+        const years = Array.from({length: currentYear - 1899}, (_, i) => i + 1900);
+        
+        // 表单数据
+        const birthYear = ref('');
+        const birthMonth = ref('');
+        const birthDay = ref('');
+        const dayError = ref('');
+        
+        // 结果显示控制
+        const showResults = ref(false);
+        
+        // 计算当月天数
+        const days = computed(() => {
+          if (!birthYear.value || !birthMonth.value) return Array.from({length: 31}, (_, i) => i + 1);
+          
+          const daysInMonth = new Date(birthYear.value, birthMonth.value, 0).getDate();
+          return Array.from({length: daysInMonth}, (_, i) => i + 1);
+        });
+        
+        // 监听月份变化，确保日期有效
+        watch([birthYear, birthMonth], () => {
+          if (birthDay.value > days.value.length) {
+            birthDay.value = days.value.length;
+            dayError.value = `所选月份最多有 ${days.value.length} 天`;
+            setTimeout(() => {
+              dayError.value = '';
+            }, 3000);
+          } else {
+            dayError.value = '';
+          }
+        });
+        
+        // 计算已出生天数
+        const daysLived = ref(0);
+        
+        // 计算年龄
+        const age = ref(0);
+        
+        // 生肖信息
+        const zodiacSigns = ['鼠', '牛', '虎', '兔', '龙', '蛇', '马', '羊', '猴', '鸡', '狗', '猪'];
+        
+        // 生肖表情
+        const zodiacEmojis = ['🐭', '🐮', '🐯', '🐰', '🐲', '🐍', '🐴', '🐑', '🐵', '🐔', '🐶', '🐷'];
+        
+        const zodiacSign = ref('');
+        const zodiacEmoji = ref('');
+        
+        // 计算年龄函数
+        const calculateAge = () => {
+          if (!birthYear.value || !birthMonth.value || !birthDay.value) {
+            return;
+          }
+          
+          // 创建出生日期对象
+          const birthDate = new Date(birthYear.value, birthMonth.value - 1, birthDay.value);
+          
+          // 验证日期有效性
+          if (isNaN(birthDate.getTime())) {
+            dayError.value = '无效的日期';
+            return;
+          }
+          
+          // 当前日期
+          const currentDate = new Date();
+          
+          // 计算已出生天数（毫秒转天数）
+          const timeDiff = currentDate - birthDate;
+          daysLived.value = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+          
+          // 计算年龄
+          let years = currentDate.getFullYear() - birthDate.getFullYear();
+          const monthDiff = currentDate.getMonth() - birthDate.getMonth();
+          
+          if (monthDiff < 0 || (monthDiff === 0 && currentDate.getDate() < birthDate.getDate())) {
+            years--;
+          }
+          
+          age.value = years;
+          
+          // 计算生肖
+          // 注意：中国传统的生肖年是按农历计算的，这里用公历年份的简化计算
+          // 1900年是鼠年，用输入年份减去1900后取余12，可得到生肖索引
+          const zodiacIndex = (birthYear.value - 1900) % 12;
+          zodiacSign.value = `属${zodiacSigns[zodiacIndex]}`;
+          zodiacEmoji.value = zodiacEmojis[zodiacIndex];
+          
+          // 显示结果
+          showResults.value = true;
+        };
+        
+        return {
+          years,
+          currentYear,
+          birthYear,
+          birthMonth,
+          birthDay,
+          days,
+          dayError,
+          daysLived,
+          age,
+          zodiacSign,
+          zodiacEmoji,
+          showResults,
+          calculateAge
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

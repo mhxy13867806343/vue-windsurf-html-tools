@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>简易记事本</title>
+  <style>
+    /* 样式重置和全局样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    /* 左侧列表区域 */
+    .sidebar {
+      width: 280px;
+      background-color: #fff;
+      border-right: 1px solid #e0e0e0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .sidebar-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .add-btn {
+      background-color: #1890ff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+      font-size: 14px;
+    }
+    
+    .add-btn:hover {
+      background-color: #40a9ff;
+    }
+    
+    .note-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    
+    .note-item {
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      border-left: 3px solid transparent;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .note-item:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .note-item.active {
+      background-color: #e6f7ff;
+      border-left-color: #1890ff;
+    }
+    
+    .note-title {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .note-title.editable {
+      border-bottom: 1px solid #1890ff;
+      padding-bottom: 2px;
+      outline: none;
+    }
+    
+    .delete-btn {
+      visibility: hidden;
+      color: #ff4d4f;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 2px;
+      transition: all 0.2s;
+    }
+    
+    .delete-btn:hover {
+      background-color: rgba(255, 77, 79, 0.1);
+    }
+    
+    .note-item:hover .delete-btn {
+      visibility: visible;
+    }
+    
+    .sidebar-footer {
+      padding: 12px;
+      border-top: 1px solid #e0e0e0;
+      background-color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .clear-all-btn {
+      color: #ff4d4f;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 8px;
+    }
+    
+    .clear-all-btn:hover {
+      text-decoration: underline;
+    }
+    
+    .trash-btn {
+      display: flex;
+      align-items: center;
+      color: #666;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px 8px;
+    }
+    
+    .trash-btn:hover {
+      color: #1890ff;
+    }
+    
+    .trash-icon {
+      margin-right: 4px;
+    }
+    
+    .trash-count {
+      background-color: #ff4d4f;
+      color: #fff;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      margin-left: 4px;
+    }
+    
+    /* 右侧内容区域 */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      overflow: hidden;
+    }
+    
+    .content-header {
+      padding: 16px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .content-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      outline: none;
+    }
+    
+    .content-date {
+      color: #999;
+      font-size: 13px;
+    }
+    
+    .content-editor {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+    
+    .editor {
+      width: 100%;
+      height: 100%;
+      border: none;
+      resize: none;
+      outline: none;
+      font-size: 16px;
+      line-height: 1.6;
+      background-color: transparent;
+    }
+    
+    .content-empty {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #999;
+    }
+    
+    .empty-icon {
+      font-size: 80px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+    
+    .empty-text {
+      font-size: 16px;
+    }
+    
+    /* 回收站 */
+    .trash-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: #fff;
+      border-top: 1px solid #e0e0e0;
+      box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.15);
+      padding: 16px;
+      transform: translateY(100%);
+      transition: transform 0.3s;
+      z-index: 1000;
+    }
+    
+    .trash-panel.active {
+      transform: translateY(0);
+    }
+    
+    .trash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .trash-title {
+      font-size: 18px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+    }
+    
+    .trash-title-icon {
+      margin-right: 8px;
+    }
+    
+    .trash-close {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      color: #999;
+    }
+    
+    .trash-settings {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    
+    .trash-setting-label {
+      margin-right: 12px;
+      color: #666;
+    }
+    
+    .trash-select {
+      padding: 6px 12px;
+      border: 1px solid #d9d9d9;
+      border-radius: 4px;
+      outline: none;
+    }
+    
+    .trash-list {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .trash-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .trash-item-info {
+      flex: 1;
+    }
+    
+    .trash-item-title {
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    
+    .trash-item-date {
+      font-size: 12px;
+      color: #999;
+    }
+    
+    .trash-item-expires {
+      font-size: 12px;
+      color: #ff4d4f;
+    }
+    
+    .trash-item-actions {
+      display: flex;
+    }
+    
+    .restore-btn,
+    .delete-forever-btn {
+      background: none;
+      border: none;
+      padding: 4px 8px;
+      margin-left: 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .restore-btn {
+      color: #52c41a;
+    }
+    
+    .restore-btn:hover {
+      background-color: rgba(82, 196, 26, 0.1);
+    }
+    
+    .delete-forever-btn {
+      color: #ff4d4f;
+    }
+    
+    .delete-forever-btn:hover {
+      background-color: rgba(255, 77, 79, 0.1);
+    }
+    
+    /* 对话框 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1001;
+    }
+    
+    .modal {
+      background-color: #fff;
+      border-radius: 4px;
+      padding: 20px;
+      width: 400px;
+      max-width: 90%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    
+    .modal-content {
+      margin-bottom: 20px;
+    }
+    
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    
+    .modal-btn {
+      padding: 8px 16px;
+      margin-left: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    
+    .btn-cancel {
+      background-color: #f0f0f0;
+      border: 1px solid #d9d9d9;
+      color: #666;
+    }
+    
+    .btn-cancel:hover {
+      background-color: #e0e0e0;
+    }
+    
+    .btn-danger {
+      background-color: #ff4d4f;
+      border: 1px solid #ff4d4f;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background-color: #ff7875;
+    }
+    
+    /* 响应式设计 */
+    @media screen and (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: 50%;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+      }
+      .content-area {
+        height: 50%;
+      }
+    }
+    
+    .trash-checkbox {
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <!-- 左侧列表区域 -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">我的记事本</div>
+          <button class="add-btn" @click="createNote">新建</button>
+        </div>
+        <div class="note-list" @dblclick.self="createNote">
+          <div v-if="!trashActive" class="notes-container">
+            <div v-for="note in notes" :key="note.id" 
+                 class="note-item" 
+                 :class="{active: activeNoteId === note.id}" 
+                 @click="selectNote(note.id)"
+                 @dblclick.stop="startEditingTitle(note.id)">
+              <span v-if="editingTitleId !== note.id" 
+                   class="note-title" 
+                   :title="note.title">
+                {{note.title}}
+              </span>
+              <span v-else 
+                   class="note-title editable" 
+                   contenteditable="true" 
+                   @blur="finishEditTitle"
+                   @keydown.enter.prevent="finishEditTitle"></span>
+              <span class="note-date">{{formatDate(note.updatedAt)}}</span>
+              <button class="delete-btn" @click.stop="confirmDeleteNote(note.id)" title="删除笔记">🗑️</button>
+            </div>
+          </div>
+          <div v-else>
+            <div v-for="note in trashedNotes" :key="note.id" class="trash-item">
+              <input type="checkbox" class="trash-checkbox" v-model="selectedTrashedIds" :value="note.id">
+              <div class="trash-item-info">
+                <div class="trash-item-title">{{ note.title }}</div>
+                <div class="trash-item-date">删除于: {{ formatDate(note.deletedAt) }}</div>
+                <div class="trash-item-expires">
+                  {{ getExpiryText(note.deletedAt) }}
+                </div>
+              </div>
+              <div class="trash-item-actions">
+                <button class="restore-btn" @click="restoreNote(note.id)">恢复</button>
+                <button class="delete-forever-btn" @click="confirmDeleteForever(note.id)">彻底删除</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="sidebar-footer">
+          <button class="clear-all-btn" @click="confirmClearAll">清空所有记录</button>
+          <button class="trash-btn" @click="toggleTrash">
+            <span class="trash-icon">🗑️</span>
+            <span>回收站</span>
+            <span class="trash-count" v-if="trashedNotes.length">{{ trashedNotes.length }}</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- 右侧内容区域 -->
+      <div class="content-area">
+        <template v-if="activeNote">
+          <div class="content-header">
+            <div 
+              class="content-title"
+              contenteditable
+              @blur="updateTitle"
+              @keydown.enter.prevent="updateTitle"
+            >{{ activeNote.title }}</div>
+            <div class="content-date">
+              {{ formatDate(activeNote.updatedAt) }}
+            </div>
+          </div>
+          <div class="content-editor">
+            <textarea 
+              class="editor" 
+              v-model="activeNote.content"
+              @input="updateContent"
+              placeholder="在这里开始记录..."
+            ></textarea>
+          </div>
+        </template>
+        <div class="content-empty" v-else>
+          <div class="empty-icon">📝</div>
+          <div class="empty-text">选择一个笔记或创建新笔记</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 回收站面板 -->
+    <div class="trash-panel" :class="{ active: trashActive }">
+      <div class="trash-header">
+        <div class="trash-title">
+          <span class="trash-title-icon">🗑️</span>
+          <span>回收站</span>
+        </div>
+        <button class="trash-close" @click="toggleTrash">&times;</button>
+      </div>
+      
+      <div class="trash-settings">
+        <div class="trash-setting-label">删除项目保留时间:</div>
+        <select class="trash-select" v-model="trashRetentionDays">
+          <option value="7">7 天</option>
+          <option value="15">15 天</option>
+          <option value="30">30 天</option>
+          <option value="60">60 天</option>
+          <option value="90">90 天</option>
+          <option value="180">180 天</option>
+        </select>
+      </div>
+      
+      <div class="trash-list">
+        <div v-if="trashedNotes.length === 0" style="padding: 20px; text-align: center; color: #999;">
+          回收站为空
+        </div>
+        <div v-for="note in trashedNotes" :key="note.id" class="trash-item">
+          <input type="checkbox" class="trash-checkbox" v-model="selectedTrashedIds" :value="note.id">
+          <div class="trash-item-info">
+            <div class="trash-item-title">{{ note.title }}</div>
+            <div class="trash-item-date">删除于: {{ formatDate(note.deletedAt) }}</div>
+            <div class="trash-item-expires">
+              {{ getExpiryText(note.deletedAt) }}
+            </div>
+          </div>
+          <div class="trash-item-actions">
+            <button class="restore-btn" @click="restoreNote(note.id)">恢复</button>
+            <button class="delete-forever-btn" @click="confirmDeleteForever(note.id)">彻底删除</button>
+          </div>
+        </div>
+      </div>
+      <div class="trash-actions" style="padding-top: 16px; display: flex; justify-content: space-between;">
+        <button v-if="trashedNotes.length > 0" @click="confirmRestoreAll" style="padding: 8px 16px; background: #52c41a; color: white; border: none; border-radius: 4px; cursor: pointer;">一键恢复全部</button>
+        <div>
+          <button v-if="selectedTrashedIds.length > 0" @click="restoreSelected" style="padding: 8px 16px; background: #40a9ff; color: white; border: none; border-radius: 4px; margin-right: 8px; cursor: pointer;">恢复选中</button>
+          <button v-if="selectedTrashedIds.length > 0" @click="confirmDeleteSelected" style="padding: 8px 16px; background: #ff4d4f; color: white; border: none; border-radius: 4px; cursor: pointer;">删除选中</button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 确认对话框 -->
+    <div class="modal-overlay" v-if="showConfirmDialog" @click.self="cancelConfirmDialog">
+      <div class="modal">
+        <div class="modal-title">{{ confirmDialogTitle }}</div>
+        <div class="modal-content">{{ confirmDialogContent }}</div>
+        <div class="modal-actions">
+          <button class="modal-btn btn-cancel" @click="cancelConfirmDialog">取消</button>
+          <button class="modal-btn btn-danger" @click="confirmAction">确认</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <script>
+    const { createApp, ref, computed, nextTick, watch } = Vue;
+    
+    createApp({
+      setup() {
+        // 本地存储的键名
+        const STORAGE_KEY = 'vue-notepad-data';
+        const TRASH_RETENTION_KEY = 'vue-notepad-trash-retention';
+        
+        // 从本地存储加载数据
+        const loadFromStorage = () => {
+          const storedData = localStorage.getItem(STORAGE_KEY);
+          if (storedData) {
+            try {
+              return JSON.parse(storedData);
+            } catch (e) {
+              console.error('无法解析本地存储的数据', e);
+              return { notes: [], trashedNotes: [] };
+            }
+          }
+          return { notes: [], trashedNotes: [] };
+        };
+        
+        // 已选择的回收站笔记ID
+        const selectedTrashedIds = ref([]);
+        
+        // 保存数据到本地存储
+        const saveToStorage = (data) => {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        };
+        
+        // 加载数据
+        const storedData = loadFromStorage();
+        
+        // 笔记列表
+        const notes = ref(storedData.notes || []);
+        
+        // 已删除的笔记列表
+        const trashedNotes = ref(storedData.trashedNotes || []);
+        
+        // 当前激活的笔记ID
+        const activeNoteId = ref(null);
+        
+        // 当前正在编辑标题的笔记ID
+        const editingTitleId = ref(null);
+        
+        // 回收站面板激活状态
+        const trashActive = ref(false);
+        
+        // 回收站保留天数
+        const trashRetentionDays = ref(localStorage.getItem(TRASH_RETENTION_KEY) || '7');
+        
+        // 监听回收站保留天数变化
+        watch(trashRetentionDays, (newValue) => {
+          localStorage.setItem(TRASH_RETENTION_KEY, newValue);
+        });
+        
+        // 当前激活的笔记
+        const activeNote = computed(() => {
+          if (!activeNoteId.value) return null;
+          return notes.value.find(note => note.id === activeNoteId.value) || null;
+        });
+        
+        // 确认对话框状态
+        const showConfirmDialog = ref(false);
+        const confirmDialogTitle = ref('');
+        const confirmDialogContent = ref('');
+        const confirmCallback = ref(null);
+        
+        // 打开确认对话框
+        const openConfirmDialog = (title, content, callback) => {
+          confirmDialogTitle.value = title;
+          confirmDialogContent.value = content;
+          confirmCallback.value = callback;
+          showConfirmDialog.value = true;
+        };
+        
+        // 取消确认对话框
+        const cancelConfirmDialog = () => {
+          showConfirmDialog.value = false;
+        };
+        
+        // 确认操作
+        const confirmAction = () => {
+          if (confirmCallback.value) {
+            confirmCallback.value();
+          }
+          showConfirmDialog.value = false;
+        };
+        
+        // 格式化日期
+        const formatDate = (timestamp) => {
+          const date = new Date(timestamp);
+          return date.toLocaleString('zh-CN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        };
+        
+        // 获取到期文本
+        const getExpiryText = (deletedAt) => {
+          const expiryDate = new Date(deletedAt);
+          expiryDate.setDate(expiryDate.getDate() + parseInt(trashRetentionDays.value, 10));
+          
+          const now = new Date();
+          const diffTime = expiryDate - now;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          return `将在${diffDays}天后永久删除`;
+        };
+        
+        // 创建新笔记
+        const createNote = () => {
+          // 检查是否存在未命名的笔记
+          const untitledNote = notes.value.find(note => note.title === '未命名笔记');
+          if (untitledNote) {
+            selectNote(untitledNote.id);
+            return;
+          }
+          
+          const newNote = {
+            id: Date.now().toString(),
+            title: '未命名笔记',
+            content: '',
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+          
+          notes.value.unshift(newNote);
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+          
+          selectNote(newNote.id);
+          startEditingTitle(newNote.id);
+        };
+        
+        // 开始编辑标题
+        const startEditingTitle = async (noteId) => {
+          editingTitleId.value = noteId;
+          await nextTick();
+          const titleEditor = document.querySelector('.note-title.editable');
+          if (titleEditor) {
+            titleEditor.focus();
+            // 将光标移动到文本末尾
+            const range = document.createRange();
+            const selection = window.getSelection();
+            range.selectNodeContents(titleEditor);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+        };
+        
+        // 完成编辑标题
+        const finishEditTitle = () => {
+          if (!editingTitleId.value) return;
+          
+          const titleEditor = document.querySelector('.note-title.editable');
+          if (!titleEditor) {
+            editingTitleId.value = null;
+            return;
+          }
+          
+          let newTitle = titleEditor.textContent.trim();
+          if (!newTitle) {
+            newTitle = '未命名笔记';
+          }
+          
+          // 检查标题是否重复
+          const isDuplicate = notes.value.some(note => 
+            note.id !== editingTitleId.value && note.title === newTitle
+          );
+          
+          if (isDuplicate) {
+            alert('标题已存在，请使用其他标题');
+            titleEditor.focus();
+            return;
+          }
+          
+          const noteIndex = notes.value.findIndex(note => note.id === editingTitleId.value);
+          if (noteIndex !== -1) {
+            notes.value[noteIndex].title = newTitle;
+            notes.value[noteIndex].updatedAt = Date.now();
+            saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+          }
+          
+          editingTitleId.value = null;
+        };
+        
+        // 选择笔记
+        const selectNote = (noteId) => {
+          activeNoteId.value = noteId;
+        };
+        
+        // 更新标题
+        const updateTitle = (event) => {
+          if (!activeNote.value) return;
+          
+          let newTitle = event.target.textContent.trim();
+          if (!newTitle) {
+            newTitle = '未命名笔记';
+            event.target.textContent = newTitle;
+          }
+          
+          // 检查标题是否重复
+          const isDuplicate = notes.value.some(note => 
+            note.id !== activeNote.value.id && note.title === newTitle
+          );
+          
+          if (isDuplicate) {
+            alert('标题已存在，请使用其他标题');
+            event.target.textContent = activeNote.value.title;
+            event.target.focus();
+            return;
+          }
+          
+          activeNote.value.title = newTitle;
+          activeNote.value.updatedAt = Date.now();
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 更新内容
+        const updateContent = () => {
+          if (!activeNote.value) return;
+          
+          activeNote.value.updatedAt = Date.now();
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 确认删除笔记
+        const confirmDeleteNote = (noteId) => {
+          const note = notes.value.find(note => note.id === noteId);
+          if (!note) return;
+          
+          openConfirmDialog(
+            '删除笔记',
+            `确定要删除「${note.title}」吗？它将被移到回收站。`,
+            () => deleteNote(noteId)
+          );
+        };
+        
+        // 删除笔记
+        const deleteNote = (noteId) => {
+          const noteIndex = notes.value.findIndex(note => note.id === noteId);
+          if (noteIndex === -1) return;
+          
+          const deletedNote = { ...notes.value[noteIndex], deletedAt: Date.now() };
+          trashedNotes.value.push(deletedNote);
+          
+          notes.value.splice(noteIndex, 1);
+          
+          if (activeNoteId.value === noteId) {
+            activeNoteId.value = notes.value.length > 0 ? notes.value[0].id : null;
+          }
+          
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 确认清空所有记录
+        const confirmClearAll = () => {
+          if (notes.value.length === 0) {
+            alert('没有笔记可清空');
+            return;
+          }
+          
+          openConfirmDialog(
+            '清空所有笔记',
+            '确定要清空所有笔记吗？此操作将把所有笔记移到回收站。',
+            clearAllNotes
+          );
+        };
+        
+        // 清空所有笔记
+        const clearAllNotes = () => {
+          const now = Date.now();
+          const deletedNotes = notes.value.map(note => ({ ...note, deletedAt: now }));
+          trashedNotes.value.push(...deletedNotes);
+          
+          notes.value = [];
+          activeNoteId.value = null;
+          
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 切换回收站面板
+        const toggleTrash = () => {
+          trashActive.value = !trashActive.value;
+          
+          // 清理过期的已删除笔记
+          if (trashActive.value) {
+            cleanupExpiredTrash();
+            // 清空选择
+            selectedTrashedIds.value = [];
+          }
+        };
+        
+        // 处理空白区域双击事件
+        const handleBlankAreaDblClick = (event) => {
+          // 确保点击的是空白区域，不是子元素
+          if (event.target === event.currentTarget) {
+            createNote();
+          }
+        };
+        
+        // 确认恢复所有笔记
+        const confirmRestoreAll = () => {
+          if (trashedNotes.value.length === 0) {
+            alert('回收站为空');
+            return;
+          }
+          
+          openConfirmDialog(
+            '恢复所有笔记',
+            '确定要恢复回收站中的所有笔记吗？',
+            restoreAllNotes
+          );
+        };
+        
+        // 恢复所有笔记
+        const restoreAllNotes = () => {
+          // 一个一个恢复以处理可能的标题冲突
+          [...trashedNotes.value].forEach(note => {
+            restoreNote(note.id);
+          });
+        };
+        
+        // 确认删除选中的笔记
+        const confirmDeleteSelected = () => {
+          if (selectedTrashedIds.value.length === 0) {
+            alert('请先选择要删除的笔记');
+            return;
+          }
+          
+          openConfirmDialog(
+            '永久删除选中的笔记',
+            `确定要永久删除选中的 ${selectedTrashedIds.value.length} 条笔记吗？此操作无法撤销。`,
+            deleteSelectedNotes
+          );
+        };
+        
+        // 删除选中的笔记
+        const deleteSelectedNotes = () => {
+          selectedTrashedIds.value.forEach(id => {
+            deleteForever(id);
+          });
+          selectedTrashedIds.value = [];
+        };
+        
+        // 恢复笔记
+        const restoreNote = (noteId) => {
+          const noteIndex = trashedNotes.value.findIndex(note => note.id === noteId);
+          if (noteIndex === -1) return;
+          
+          const restoredNote = { ...trashedNotes.value[noteIndex] };
+          delete restoredNote.deletedAt;
+          
+          // 检查标题是否重复
+          let uniqueTitle = restoredNote.title;
+          let counter = 1;
+          
+          while (notes.value.some(note => note.title === uniqueTitle)) {
+            uniqueTitle = `${restoredNote.title} (${counter})`;
+            counter++;
+          }
+          
+          restoredNote.title = uniqueTitle;
+          restoredNote.updatedAt = Date.now();
+          
+          notes.value.unshift(restoredNote);
+          trashedNotes.value.splice(noteIndex, 1);
+          
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 确认永久删除笔记
+        const confirmDeleteForever = (noteId) => {
+          const note = trashedNotes.value.find(note => note.id === noteId);
+          if (!note) return;
+          
+          openConfirmDialog(
+            '永久删除',
+            `确定要永久删除「${note.title}」吗？此操作无法撤销。`,
+            () => deleteForever(noteId)
+          );
+        };
+        
+        // 永久删除笔记
+        const deleteForever = (noteId) => {
+          const noteIndex = trashedNotes.value.findIndex(note => note.id === noteId);
+          if (noteIndex === -1) return;
+          
+          trashedNotes.value.splice(noteIndex, 1);
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 清理过期的已删除笔记
+        const cleanupExpiredTrash = () => {
+          const now = Date.now();
+          const retentionMs = parseInt(trashRetentionDays.value, 10) * 24 * 60 * 60 * 1000;
+          
+          trashedNotes.value = trashedNotes.value.filter(note => {
+            const expiryTime = note.deletedAt + retentionMs;
+            return expiryTime > now;
+          });
+          
+          saveToStorage({ notes: notes.value, trashedNotes: trashedNotes.value });
+        };
+        
+        // 初始化默认选择第一个笔记
+        if (notes.value.length > 0) {
+          activeNoteId.value = notes.value[0].id;
+        }
+        
+        // 自动清理过期的已删除笔记
+        cleanupExpiredTrash();
+        
+        // 恢复选中的笔记
+        const restoreSelected = () => {
+          if (selectedTrashedIds.value.length === 0) return;
+          
+          [...selectedTrashedIds.value].forEach(id => {
+            restoreNote(id);
+          });
+          
+          selectedTrashedIds.value = [];
+        };
+        
+        return {
+          notes,
+          trashedNotes,
+          activeNoteId,
+          editingTitleId,
+          activeNote,
+          trashActive,
+          trashRetentionDays,
+          showConfirmDialog,
+          confirmDialogTitle,
+          confirmDialogContent,
+          selectedTrashedIds,
+          formatDate,
+          getExpiryText,
+          createNote,
+          selectNote,
+          updateTitle,
+          updateContent,
+          startEditingTitle,
+          finishEditTitle,
+          confirmDeleteNote,
+          confirmClearAll,
+          toggleTrash,
+          restoreNote,
+          restoreSelected,
+          confirmDeleteForever,
+          cancelConfirmDialog,
+          confirmAction,
+          handleBlankAreaDblClick,
+          confirmRestoreAll,
+          confirmDeleteSelected
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

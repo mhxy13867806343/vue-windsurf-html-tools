@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>图片压缩工具</title>
+  <!-- Ant Design Vue CSS -->
+	<link type="text/css" href="https://unpkg.com/ant-design-vue@4.2.3/dist/reset.css" media="screen" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      padding: 20px;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 20px;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .back-link {
+      color: #1890ff;
+      text-decoration: none;
+    }
+    .settings {
+      margin-bottom: 20px;
+      padding: 16px;
+      background-color: #fafafa;
+      border-radius: 4px;
+      border: 1px solid #f0f0f0;
+    }
+    .settings-row {
+      display: flex;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .settings-item {
+      margin-right: 24px;
+      margin-bottom: 8px;
+    }
+    .settings-actions {
+      display: flex;
+      align-items: flex-end;
+    }
+    .settings-item label {
+      display: block;
+      margin-bottom: 4px;
+      color: #666;
+    }
+    .advanced-options-toggle {
+      margin: 8px 0 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      user-select: none;
+      color: #1890ff;
+    }
+    .advanced-options-toggle:hover {
+      text-decoration: underline;
+    }
+    .advanced-options {
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      border-left: 3px solid #1890ff;
+    }
+    .checkbox-group {
+      display: flex;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .checkbox-item {
+      margin-right: 16px;
+      display: flex;
+      align-items: center;
+    }
+    .checkbox-item input {
+      margin-right: 6px;
+    }
+    .file-list {
+      margin-top: 24px;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      margin-bottom: 8px;
+      border: 1px solid #f0f0f0;
+      border-radius: 4px;
+      background-color: #fafafa;
+    }
+    .drag-handle {
+      cursor: grab;
+      margin-right: 10px;
+      display: flex;
+      align-items: center;
+    }
+    .drag-icon {
+      color: #999;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+    .ghost-item {
+      opacity: 0.5;
+      background: #c8ebfb;
+    }
+    .chosen-item {
+      background: #eaf6fd;
+    }
+    .dragging {
+      cursor: grabbing;
+    }
+    .ghost-item {
+      opacity: 0.5;
+      background: #e8f4ff !important;
+      border: 1px dashed #1890ff !important;
+    }
+    .chosen-item {
+      background: #f0f7ff;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+    .file-name {
+      flex: 1;
+      margin-right: 16px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .file-info, .file-dimensions {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+    .file-dimensions {
+      margin-bottom: 12px;
+      background-color: #f9f9f9;
+      padding: 4px 8px;
+      border-radius: 4px;
+      border-left: 3px solid #1890ff;
+    }
+    .file-actions button {
+      margin-left: 8px;
+    }
+    .buttons-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+    .upload-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-btn input {
+      position: absolute;
+      top: 0;
+      right: 0;
+      margin: 0;
+      padding: 0;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0;
+      filter: alpha(opacity=0);
+    }
+    .preview-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 16px;
+      position: relative;
+    }
+    .preview-item {
+      width: 300px;
+      text-align: center;
+      position: relative;
+    }
+    .preview-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      transition: transform 0.2s;
+      cursor: zoom-in;
+    }
+    .preview-controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 8px;
+      gap: 8px;
+    }
+    .zoomed {
+      cursor: zoom-out;
+      transform: scale(1.5);
+      transform-origin: center center;
+    }
+    .fullscreen-preview {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .fullscreen-preview img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+    }
+    .fullscreen-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: white;
+      font-size: 30px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      opacity: 0.8;
+    }
+    .fullscreen-close:hover {
+      opacity: 1;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      background-color: #fff;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+    .btn-primary {
+      color: #fff;
+      background-color: #1890ff;
+      border-color: #1890ff;
+    }
+    .btn-primary:hover {
+      background-color: #40a9ff;
+      border-color: #40a9ff;
+      color: #fff;
+    }
+    .btn-danger {
+      color: #ff4d4f;
+      border-color: #ff4d4f;
+    }
+    .btn-danger:hover {
+      background-color: #ff4d4f;
+      border-color: #ff4d4f;
+      color: #fff;
+    }
+    select, input {
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid #d9d9d9;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="header">
+        <h1>图片压缩工具</h1>
+        <a href="../index.html" class="back-link">返回首页</a>
+      </div>
+
+      <div class="settings">
+        <h3>压缩设置</h3>
+        <div class="settings-row">
+          <div class="settings-item">
+            <label for="format">输出格式</label>
+            <select id="format" v-model="format">
+              <option value="jpeg">JPEG</option>
+              <option value="png">PNG</option>
+              <option value="webp">WebP</option>
+              <option value="bmp">BMP</option>
+            </select>
+          </div>
+          <div class="settings-item">
+            <label for="quality">输出质量 (1-100)</label>
+            <input id="quality" type="number" v-model.number="quality" min="1" max="100">
+          </div>
+          <div class="settings-item">
+            <label for="maxWidth">最大宽度 (px, 可选)</label>
+            <input id="maxWidth" type="number" v-model.number="maxWidth" min="0">
+          </div>
+          <div class="settings-item">
+            <label for="maxHeight">最大高度 (px, 可选)</label>
+            <input id="maxHeight" type="number" v-model.number="maxHeight" min="0">
+          </div>
+          <div class="settings-item settings-actions">
+            <button class="btn btn-primary" @click="applySettingsToAll">将当前设置应用到所有文件</button>
+          </div>
+        </div>
+        
+        <div class="advanced-options-toggle" @click="advancedOptions = !advancedOptions">
+          <span>{{ advancedOptions ? '隐藏' : '显示' }}高级选项</span>
+        </div>
+        
+        <div class="advanced-options" v-if="advancedOptions">
+          <div class="settings-row">
+            <div class="settings-item">
+              <label for="resizeMode">调整大小模式</label>
+              <select id="resizeMode" v-model="resizeMode">
+                <option value="auto">自动 (保持宽高比)</option>
+                <option value="width">按宽度缩放</option>
+                <option value="height">按高度缩放</option>
+                <option value="exact">精准尺寸</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="checkbox-group">
+            <div class="checkbox-item">
+              <input id="preserveExif" type="checkbox" v-model="preserveExif">
+              <label for="preserveExif">保留EXIF信息</label>
+            </div>
+            <div class="checkbox-item">
+              <input id="optimizeForWeb" type="checkbox" v-model="optimizeForWeb">
+              <label for="optimizeForWeb">优化为Web格式</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="upload-btn">
+          <button class="btn btn-primary">
+            选择图片
+            <input type="file" multiple @change="handleFileSelect" accept="image/*">
+          </button>
+        </div>
+      </div>
+
+      <div v-if="files.length > 0">
+        <h3>图片列表</h3>
+        <div class="file-list">
+          <div v-for="(file, index) in files" :key="file.id" class="file-item">
+            <div class="file-name">
+              <input type="text" v-model="file.newName" @change="updateFileName(index)">
+            </div>
+            <div class="file-info">
+              原始大小: <span v-text="formatFileSize(file.originalSize)"></span> | 
+              压缩后: <span v-text="file.compressedSize ? formatFileSize(file.compressedSize) : '处理中...'"></span>
+            </div>
+            <div class="file-dimensions">
+              尺寸: <span v-text="`${file.width} × ${file.height}`"></span> | 
+              格式: <span v-text="file.settings?.format || '-'"></span> | 
+              质量: <span v-text="file.settings?.quality || '-'"></span>%
+            </div>
+            <div class="file-actions">
+              <button class="btn" @click="previewImage(index)">预览</button>
+              <button class="btn" @click="downloadImage(index)">下载</button>
+              <button class="btn btn-danger" @click="showDeleteConfirm(index)">删除</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="buttons-container">
+          <button class="btn" @click="clearAllFiles">清空列表</button>
+          <button class="btn btn-primary" @click="downloadAllImages" :disabled="!allProcessed">下载全部</button>
+        </div>
+
+        <div v-if="previewIndex !== null" class="preview-container">
+          <div class="preview-item">
+            <h4>原图</h4>
+            <img 
+              :src="files[previewIndex].originalUrl" 
+              class="preview-img" 
+              :class="{zoomed: originalZoomed}"
+              @click="toggleOriginalZoom"
+              alt="原始图片">
+            <div class="preview-controls">
+              <button class="btn" @click="showFullscreen(files[previewIndex].originalUrl)">全屏</button>
+              <button class="btn" @click="toggleOriginalZoom">缩放</button>
+            </div>
+          </div>
+          <div class="preview-item">
+            <h4>压缩后</h4>
+            <img 
+              :src="files[previewIndex].compressedUrl" 
+              class="preview-img" 
+              :class="{zoomed: compressedZoomed}"
+              @click="toggleCompressedZoom"
+              alt="压缩后图片">
+            <div class="preview-controls">
+              <button class="btn" @click="showFullscreen(files[previewIndex].compressedUrl)">全屏</button>
+              <button class="btn" @click="toggleCompressedZoom">缩放</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 全屏预览 -->
+        <div v-if="fullscreenPreview" class="fullscreen-preview" @click="closeFullscreen">
+          <button class="fullscreen-close" @click="closeFullscreen">&times;</button>
+          <img :src="fullscreenUrl" alt="全屏预览">
+        </div>
+      </div>
+      <div v-else>
+        <p>请选择要压缩的图片文件</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 使用 Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <!-- 使用 JSZip 库实现批量压缩下载 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <!-- 使用 Sortable.js 实现拖拽排序 -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <!-- 使用 Vue Draggable 实现列表拖拽排序 -->
+  <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
+  
+  <!-- 使用自定义的确认框样式 -->
+  <style>
+    .custom-modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .custom-modal {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      width: 420px;
+      max-width: 90%;
+      padding: 0;
+      overflow: hidden;
+    }
+    
+    .custom-modal-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 16px;
+      font-weight: 500;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .custom-modal-close {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      color: #999;
+    }
+    
+    .custom-modal-body {
+      padding: 24px;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .custom-modal-footer {
+      padding: 10px 16px;
+      border-top: 1px solid #f0f0f0;
+      display: flex;
+      justify-content: flex-end;
+    }
+    
+    .custom-modal-btn {
+      margin-left: 8px;
+      padding: 4px 15px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    
+    .custom-modal-btn-default {
+      border: 1px solid #d9d9d9;
+      background: #fff;
+    }
+    
+    .custom-modal-btn-default:hover {
+      border-color: #1677ff;
+      color: #1677ff;
+    }
+    
+    .custom-modal-btn-primary {
+      background: #1677ff;
+      border: 1px solid #1677ff;
+      color: white;
+    }
+    
+    .custom-modal-btn-danger {
+      background: #ff4d4f;
+      border: 1px solid #ff4d4f;
+      color: white;
+    }
+  </style>
+  
+  <!-- 引入图片压缩库 -->
+  <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.0/dist/browser-image-compression.js"></script>
+
+  <script>
+    // 添加错误处理
+    window.addEventListener('error', function(e) {
+      console.error('全局错误:', e.error || e.message);
+  
+      alert('出现错误，请查看浏览器控制台以获取详细信息');
+    });
+    
+    // 检查依赖库
+    console.log('检查Vue是否加载:', typeof Vue !== 'undefined');
+    console.log('检查图片压缩库是否加载:', typeof imageCompression !== 'undefined');
+    
+    // 自定义确认对话框函数
+    function showCustomConfirm(title, content, onOk, okType = 'primary') {
+      // 创建对话框元素
+      const overlay = document.createElement('div');
+      overlay.className = 'custom-modal-overlay';
+      
+      const modal = document.createElement('div');
+      modal.className = 'custom-modal';
+      
+      const header = document.createElement('div');
+      header.className = 'custom-modal-header';
+      header.textContent = title;
+      
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'custom-modal-close';
+      closeBtn.innerHTML = '&times;';
+      closeBtn.onclick = () => document.body.removeChild(overlay);
+      header.appendChild(closeBtn);
+      
+      const body = document.createElement('div');
+      body.className = 'custom-modal-body';
+      body.textContent = content;
+      
+      const footer = document.createElement('div');
+      footer.className = 'custom-modal-footer';
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'custom-modal-btn custom-modal-btn-default';
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = () => document.body.removeChild(overlay);
+      
+      const okBtn = document.createElement('button');
+      okBtn.className = `custom-modal-btn custom-modal-btn-${okType}`;
+      okBtn.textContent = '确定';
+      okBtn.onclick = () => {
+        document.body.removeChild(overlay);
+        if (typeof onOk === 'function') {
+          onOk();
+        }
+      };
+      
+      footer.appendChild(cancelBtn);
+      footer.appendChild(okBtn);
+      
+      modal.appendChild(header);
+      modal.appendChild(body);
+      modal.appendChild(footer);
+      
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+    }
+    
+    // 使用 Vue 3 的创建应用API
+    const { createApp, ref, computed, onMounted } = Vue;
+    
+    // 创建Vue应用
+    const app = createApp({
+      // 注册VueDraggable组件
+      components: {
+        VueDraggable: vuedraggable
+      },
+      setup() {
+        // 响应式状态
+        const format = ref('jpeg');
+        const quality = ref(80);
+        const maxWidth = ref('');
+        const maxHeight = ref('');
+        const files = ref([]);
+        const previewIndex = ref(null);
+        
+        // 图片预览缩放状态
+        const originalZoomed = ref(false);
+        const compressedZoomed = ref(false);
+        const fullscreenPreview = ref(false);
+        const fullscreenUrl = ref('');
+        
+        // 高级选项
+        const advancedOptions = ref(false);  // 是否显示高级选项
+        const preserveExif = ref(true);      // 保留EXIF信息
+        const resizeMode = ref('auto');      // 调整大小模式: auto, width, height, exact
+        const optimizeForWeb = ref(true);    // 优化为Web格式
+        
+        // 计算属性
+        const allProcessed = computed(() => {
+          return files.value.every(file => file.compressedBlob);
+        });
+        
+        // 方法
+        // 生成唯一文件名
+        function generateUniqueFileName(baseName) {
+          // 检查文件名是否已存在
+          const exists = files.value.some(file => file.newName === baseName);
+          
+          if (!exists) {
+            return baseName; // 如果名称不存在，直接返回
+          }
+          
+          // 如果存在，生成新的文件名
+          let count = 1;
+          let uniqueName = `${baseName}_(${count})`;
+          
+          // 循环直到找到一个不存在的名称
+          while(files.value.some(file => file.newName === uniqueName)) {
+            count++;
+            uniqueName = `${baseName}_(${count})`;
+          }
+          
+          return uniqueName;
+        }
+        
+        // 拖拽相关方法
+        function onDragStart(evt) {
+          console.log('开始拖拽', evt);
+        }
+        
+        function onDragEnd(evt) {
+          console.log('拖拽结束', evt);
+          // 如果预览索引存在，需要确保它跟随被拖拽的文件
+          if (previewIndex.value !== null) {
+            // 找到当前正在预览的文件在新数组中的索引
+            const previewedFile = files.value[previewIndex.value];
+            const newIndex = files.value.findIndex(f => f.id === previewedFile.id);
+            if (newIndex !== -1) {
+              previewIndex.value = newIndex;
+            }
+          }
+        }
+        
+        function handleFileSelect(event) {
+          const selectedFiles = Array.from(event.target.files);
+          if (selectedFiles.length === 0) return;
+          
+          selectedFiles.forEach(file => {
+            if (!file.type.startsWith('image/')) {
+              alert('请选择图片文件');
+              return;
+            }
+            
+            const fileName = file.name;
+            const fileNameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
+            
+            // 生成唯一文件名
+            const uniqueFileName = generateUniqueFileName(fileNameWithoutExt);
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              // 加载图片以获取宽高信息
+              const img = new Image();
+              img.onload = () => {
+                const fileItem = {
+                  id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 添加唯一ID用于拖拽
+                  originalFile: file,
+                  originalSize: file.size,
+                  originalUrl: e.target.result,
+                  originalName: fileName,
+                  newName: uniqueFileName, // 使用生成的唯一名称
+                  compressedBlob: null,
+                  compressedUrl: '',
+                  compressedSize: 0,
+                  width: img.width,  // 保存原始宽度
+                  height: img.height, // 保存原始高度
+                  // 保存当前设置
+                  settings: {
+                    format: format.value,
+                    quality: quality.value,
+                    maxWidth: maxWidth.value || '',
+                    maxHeight: maxHeight.value || '',
+                    // 保存高级设置
+                    preserveExif: preserveExif.value,
+                    resizeMode: resizeMode.value,
+                    optimizeForWeb: optimizeForWeb.value
+                  }
+                };
+                
+                files.value.push(fileItem);
+                compressImage(files.value.length - 1);
+              };
+              img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+          });
+          
+          // 清空输入框，允许重复选择同一文件
+          event.target.value = '';
+        }
+        
+        async function compressImage(index) {
+          const file = files.value[index];
+          if (!file) return;
+          
+          try {
+            // 确保imageCompression函数可用
+            if (typeof imageCompression === 'undefined') {
+              console.error('图片压缩库未加载');
+              return;
+            }
+            
+            // 使用文件自己的设置
+            const fileSettings = file.settings;
+            const targetFormat = fileSettings.format;
+            
+            // 检查是否是GIF转换为APNG
+            if (file.originalFile.type === 'image/gif' && targetFormat === 'apng') {
+              console.log('正在尝试将GIF转换为APNG并保留动画信息');
+              // 添加动画标记
+              files.value[index].hasAnimation = true;
+              files.value[index].conversionNote = 'GIF转换为APNG，尝试保留动画';
+            }
+            
+            // 设置压缩选项
+            const options = {
+              maxSizeMB: 1, // 默认最大1MB
+              useWebWorker: true,
+              fileType: `image/${targetFormat}`,
+              quality: fileSettings.quality / 100,
+              // 是否保留EXIF信息
+              exifOrientation: fileSettings.preserveExif ? true : false,
+            };
+            
+            // 处理缩放模式
+            const maxWidthSetting = fileSettings.maxWidth;
+            const maxHeightSetting = fileSettings.maxHeight;
+            
+            // 根据缩放模式设置选项
+            switch (fileSettings.resizeMode) {
+              case 'width': // 仅按宽度缩放
+                if (maxWidthSetting) options.maxWidth = parseInt(maxWidthSetting);
+                break;
+              case 'height': // 仅按高度缩放
+                if (maxHeightSetting) options.maxHeight = parseInt(maxHeightSetting);
+                break;
+              case 'exact': // 精确尺寸
+                if (maxWidthSetting) options.maxWidth = parseInt(maxWidthSetting);
+                if (maxHeightSetting) options.maxHeight = parseInt(maxHeightSetting);
+                break;
+              default: // auto 模式，保持宽高比
+                options.maxWidthOrHeight = Math.max(
+                  parseInt(maxWidthSetting) || 0, 
+                  parseInt(maxHeightSetting) || 0
+                ) || undefined;
+            }
+            
+            // 高级设置: Web优化
+            if (fileSettings.optimizeForWeb) {
+              options.webWorkerPath = null; // 使用主线程对小图片进行处理
+              options.alwaysKeepResolution = false; // 允许缩小分辨率以节省带宽
+            }
+            
+            const compressedBlob = await imageCompression(file.originalFile, options);
+            
+            // 创建预览URL
+            const compressedUrl = URL.createObjectURL(compressedBlob);
+            
+            // 更新文件对象
+            files.value[index].compressedBlob = compressedBlob;
+            files.value[index].compressedUrl = compressedUrl;
+            files.value[index].compressedSize = compressedBlob.size;
+            
+            // 添加原始格式和目标格式信息
+            files.value[index].originalFormat = file.originalFile.type.split('/')[1];
+            files.value[index].targetFormat = targetFormat;
+            
+          } catch (error) {
+            console.error("压缩失败:", error);
+        
+            alert(`压缩失败: ${file.originalName}`)
+          }
+        }
+        
+        function formatFileSize(size) {
+          if (size < 1024) {
+            return size + ' B';
+          } else if (size < 1024 * 1024) {
+            return (size / 1024).toFixed(2) + ' KB';
+          } else {
+            return (size / (1024 * 1024)).toFixed(2) + ' MB';
+          }
+        }
+        
+        function updateFileName(index) {
+          // 文件名已在v-model中更新，无需其他操作
+        }
+        
+        function previewImage(index) {
+          previewIndex.value = index;
+          // 重置缩放状态
+          originalZoomed.value = false;
+          compressedZoomed.value = false;
+        }
+        
+        function toggleOriginalZoom() {
+          originalZoomed.value = !originalZoomed.value;
+        }
+        
+        function toggleCompressedZoom() {
+          compressedZoomed.value = !compressedZoomed.value;
+        }
+        
+        function showFullscreen(imageUrl) {
+          fullscreenUrl.value = imageUrl;
+          fullscreenPreview.value = true;
+          // 阻止页面滚动
+          document.body.style.overflow = 'hidden';
+        }
+        
+        function closeFullscreen() {
+          fullscreenPreview.value = false;
+          fullscreenUrl.value = '';
+          // 恢复页面滚动
+          document.body.style.overflow = 'auto';
+        }
+        
+        // 将当前全局设置应用到所有文件
+        function applySettingsToAll() {
+          if (files.value.length === 0) {
+            alert('没有文件需要处理');
+            return;
+          }
+          
+          showCustomConfirm('应用设置', '确定要将当前设置应用到所有文件并重新压缩吗？', async () => {
+            // 更新所有文件的设置
+            for (let i = 0; i < files.value.length; i++) {
+              // 清除原来的压缩结果
+              if (files.value[i].compressedUrl) {
+                URL.revokeObjectURL(files.value[i].compressedUrl);
+              }
+              
+              // 更新文件的设置
+              files.value[i].settings = {
+                format: format.value,
+                quality: quality.value,
+                maxWidth: maxWidth.value || '',
+                maxHeight: maxHeight.value || '',
+                preserveExif: preserveExif.value,
+                resizeMode: resizeMode.value,
+                optimizeForWeb: optimizeForWeb.value
+              };
+              
+              // 重新压缩
+              await compressImage(i);
+            }
+            
+            alert('已将当前设置应用到所有文件');
+          });
+        }
+        
+        function downloadImage(index) {
+          const file = files.value[index];
+          if (!file.compressedBlob) {
+            alert('图片尚未处理完成，请稍后再试');
+            return;
+          }
+          
+          // 使用文件自己的格式设置
+          const fileFormat = file.settings?.format || 'jpeg';
+          
+          const a = document.createElement('a');
+          a.href = file.compressedUrl;
+          a.download = `${file.newName}.${fileFormat}`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+        
+        async function downloadAllImages() {
+          if (!allProcessed.value) {
+            alert('图片尚未处理完成，请稍后再试');
+            return;
+          }
+          
+          // 如果只有一个文件，直接下载
+          if (files.value.length === 1) {
+            downloadImage(0);
+            return;
+          }
+          
+          try {
+            // 确保有JSZip库
+            if (typeof JSZip === 'undefined') {
+              alert('找不到JSZip库，无法批量下载');
+              return;
+            }
+            
+            // 创建新的ZIP对象
+            const zip = new JSZip();
+            const imageFolder = zip.folder('compressed_images');
+            
+            // 添加所有压缩后的图片到ZIP文件
+            const promises = [];
+            
+            for (let i = 0; i < files.value.length; i++) {
+              const file = files.value[i];
+              if (!file.compressedBlob) {
+                continue;
+              }
+              
+              // 使用文件自己的格式设置
+              const fileFormat = file.settings?.format || 'jpeg';
+              const fileName = `${file.newName}.${fileFormat}`;
+              
+              // 将Blob添加到ZIP文件
+              promises.push(
+                new Promise((resolve) => {
+                  const reader = new FileReader();
+                  reader.onload = (e) => {
+                    const data = e.target.result;
+                    imageFolder.file(fileName, data, {binary: true});
+                    resolve();
+                  };
+                  reader.readAsArrayBuffer(file.compressedBlob);
+                })
+              );
+            }
+            
+            // 等待所有文件加载完成
+            await Promise.all(promises);
+            
+            // 生成ZIP并下载
+            const zipBlob = await zip.generateAsync({type: 'blob'});
+            const zipUrl = URL.createObjectURL(zipBlob);
+            
+            const a = document.createElement('a');
+            a.href = zipUrl;
+            a.download = 'compressed_images.zip';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            
+            // 释放资源
+            setTimeout(() => {
+              URL.revokeObjectURL(zipUrl);
+            }, 1000);
+            
+          } catch (error) {
+            console.error('批量下载失败:', error);
+            alert('批量下载失败\n' + error.message);
+          }
+        }
+        
+        function showDeleteConfirm(index) {
+          // 获取文件名
+          const fileName = files.value[index].newName;
+          
+          // 设置标题和内容
+          const title = '确认删除';
+          let content = `确定要删除文件 ${fileName} 吗？`;
+          
+          // 如果是动画文件特别提示
+          if (files.value[index].hasAnimation) {
+            content = `文件 ${fileName} 包含动画信息。确定要删除此文件吗？`;
+          }
+          
+          // 使用自定义确认对话框
+          showCustomConfirm(title, content, () => {
+            removeFile(index);
+          }, 'danger');
+        }
+        
+        function removeFile(index) {
+          // 释放Blob URL以避免内存泄漏
+          URL.revokeObjectURL(files.value[index].originalUrl);
+          if (files.value[index].compressedUrl) {
+            URL.revokeObjectURL(files.value[index].compressedUrl);
+          }
+          
+          files.value.splice(index, 1);
+          
+          if (previewIndex.value === index) {
+            previewIndex.value = null;
+          } else if (previewIndex.value > index) {
+            previewIndex.value--;
+          }
+        }
+        
+        function clearAllFiles() {
+          // 检查是否有待处理的文件
+          if (files.value.length === 0) return;
+          
+          // 检查列表信息
+          const fileCount = files.value.length;
+          const hasGifToApng = files.value.some(file => 
+            file.hasAnimation && file.originalFormat === 'gif' && file.targetFormat === 'apng'
+          );
+          const hasAnimatedFiles = files.value.some(file => file.hasAnimation);
+          
+          // 设置标题
+          const title = '确认清空';
+          
+          // 生成确认信息
+          let content = `确定要清空全部 ${fileCount} 个文件吗？`;
+          
+          // 如果有动画文件，添加更详细的提示
+          if (hasAnimatedFiles) {
+            content = `列表中有 ${fileCount} 个文件，其中包含动画文件。确定要清空吗？`;
+          }
+          
+          // 如果有GIF转换为APNG的文件，添加特殊提示
+          if (hasGifToApng) {
+            content = `列表中包含从 GIF 转换为 APNG 的动画文件。清空操作将删除所有 ${fileCount} 个文件。确定继续吗？`;
+          }
+          
+          // 使用自定义确认对话框
+          showCustomConfirm(title, content, () => {
+            // 用户确认后执行清空操作
+            files.value.forEach(file => {
+              URL.revokeObjectURL(file.originalUrl);
+              if (file.compressedUrl) {
+                URL.revokeObjectURL(file.compressedUrl);
+              }
+            });
+            
+            files.value = [];
+            previewIndex.value = null;
+          }, 'primary');
+        }
+        
+        // 返回响应式状态和方法供模板使用
+        return {
+          format,
+          quality,
+          maxWidth,
+          maxHeight,
+          files,
+          previewIndex,
+          originalZoomed,
+          compressedZoomed,
+          fullscreenPreview,
+          fullscreenUrl,
+          advancedOptions,
+          preserveExif,
+          resizeMode,
+          optimizeForWeb,
+          allProcessed,
+          handleFileSelect,
+          compressImage,
+          formatFileSize,
+          updateFileName,
+          previewImage,
+          downloadImage,
+          downloadAllImages,
+          removeFile,
+          clearAllFiles,
+          showDeleteConfirm,
+          toggleOriginalZoom,
+          toggleCompressedZoom,
+          showFullscreen,
+          closeFullscreen,
+          applySettingsToAll,
+          onDragStart,
+          onDragEnd // 添加拖拽相关方法
+        };
+      }
+    });
+    
+    // 挂载应用
+    app.mount('#app');
+  </script>
+</body>
+</html>

@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vue 3 聊天应用</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      color: #333;
+      background-color: #f0f2f5;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .app-container {
+      display: flex;
+      height: 100vh;
+    }
+    
+    /* 左侧联系人列表 */
+    .contact-list {
+      width: 280px;
+      background-color: #fafafa;
+      border-right: 1px solid #e5e5e5;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .search-container {
+      padding: 15px;
+      border-bottom: 1px solid #e5e5e5;
+      background: #fff;
+    }
+    
+    .search-input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    
+    .contacts {
+      flex: 1;
+      overflow-y: auto;
+    }
+    
+    .contact-item {
+      padding: 12px 15px;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .contact-item:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .contact-item.active {
+      background-color: #e6f7ff;
+    }
+    
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 10px;
+      background-color: #e1e1e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .contact-info {
+      flex: 1;
+    }
+    
+    .contact-name {
+      font-size: 15px;
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    
+    .last-message {
+      font-size: 13px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .time {
+      font-size: 12px;
+      color: #999;
+      margin-left: 8px;
+    }
+    
+    /* 中间聊天区域 */
+    .chat-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid #e5e5e5;
+      background-color: #fff;
+    }
+    
+    .chat-header {
+      padding: 15px;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      height: 60px;
+    }
+    
+    .chat-title {
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .message-container {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      background-color: #f5f5f5;
+    }
+    
+    .message {
+      margin-bottom: 15px;
+      display: flex;
+    }
+    
+    .message.incoming {
+      flex-direction: row;
+    }
+    
+    .message.outgoing {
+      flex-direction: row-reverse;
+    }
+    
+    .message-content {
+      padding: 10px 15px;
+      border-radius: 4px;
+      max-width: 70%;
+      position: relative;
+      word-break: break-word;
+    }
+    
+    .incoming .message-content {
+      background-color: #fff;
+      margin-left: 10px;
+      border-top-left-radius: 0;
+    }
+    
+    .outgoing .message-content {
+      background-color: #95ec69;
+      margin-right: 10px;
+      border-top-right-radius: 0;
+    }
+    
+    .message-time {
+      font-size: 12px;
+      color: #999;
+      margin-top: 5px;
+      text-align: right;
+    }
+    
+    .message-input {
+      padding: 15px;
+      border-top: 1px solid #e5e5e5;
+      background-color: #fff;
+    }
+    
+    .input-container {
+      display: flex;
+      align-items: center;
+    }
+    
+    .emoji-button {
+      margin-right: 10px;
+      font-size: 24px;
+      cursor: pointer;
+      color: #888;
+      position: relative;
+    }
+    
+    .emoji-picker-container {
+      position: absolute;
+      bottom: 40px;
+      left: 0;
+      z-index: 100;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      width: 300px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 5px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .emoji-item {
+      font-size: 24px;
+      cursor: pointer;
+      text-align: center;
+      padding: 5px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+    
+    .emoji-item:hover {
+      background-color: #f0f0f0;
+    }
+    
+    .file-button {
+      margin-right: 10px;
+      font-size: 18px;
+      cursor: pointer;
+      color: #888;
+    }
+    .text-input-container{
+      width: 100%;
+    }
+    .text-input {
+      width: 100%;
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: none;
+      height: 80px;
+      font-family: inherit;
+      font-size: 14px;
+    }
+    
+    .send-button {
+      margin-left: 10px;
+      padding: 8px 20px;
+      background-color: #1aad19;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    
+    .send-button:disabled {
+      background-color: #9fd09e;
+      cursor: not-allowed;
+    }
+    
+    /* 右侧详情区域 */
+    .detail-panel {
+      width: 280px;
+      background-color: #fafafa;
+      overflow-y: auto;
+    }
+    
+    .detail-header {
+      padding: 20px 15px;
+      border-bottom: 1px solid #e5e5e5;
+      text-align: center;
+    }
+    
+    .detail-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      margin: 0 auto 15px;
+      background-color: #e1e1e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    
+    .detail-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .detail-name {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    
+    .detail-id {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .detail-section {
+      padding: 15px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+    
+    .section-title {
+      font-size: 14px;
+      color: #888;
+      margin-bottom: 15px;
+    }
+    
+    .detail-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    
+    .item-icon {
+      width: 18px;
+      height: 18px;
+      margin-right: 10px;
+      color: #888;
+    }
+    
+    .item-text {
+      font-size: 14px;
+      flex: 1;
+    }
+    
+    /* 搜索空结果样式 */
+    .empty-search {
+      padding: 30px 20px;
+      text-align: center;
+      color: #999;
+    }
+    
+    .empty-search-icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+      color: #ddd;
+    }
+    
+    /* 文件上传相关样式 */
+    .file-upload {
+      display: none;
+    }
+    
+    .upload-preview {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 5px;
+      margin-top: 5px;
+      gap: 5px;
+    }
+    
+    .upload-item {
+      position: relative;
+      width: 60px;
+      height: 60px;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid #ddd;
+    }
+    
+    .upload-item img, .upload-item video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    
+    .upload-item.file {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #f8f8f8;
+      font-size: 24px;
+      color: #999;
+    }
+    
+    .upload-remove {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 18px;
+      height: 18px;
+      background: rgba(0,0,0,0.5);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .message-file {
+      display: flex;
+      align-items: center;
+      background-color: #f8f8f8;
+      padding: 8px;
+      border-radius: 4px;
+      margin-top: 5px;
+    }
+    
+    .message-file-icon {
+      font-size: 24px;
+      margin-right: 10px;
+      color: #666;
+    }
+    
+    .message-file-info {
+      flex: 1;
+    }
+    
+    .message-file-name {
+      font-size: 14px;
+      margin-bottom: 2px;
+    }
+    
+    .message-file-size {
+      font-size: 12px;
+      color: #999;
+    }
+    
+    .message-file-download {
+      color: #1aad19;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    
+    .message-media {
+      margin-top: 5px;
+      max-width: 200px;
+    }
+    
+    .message-image {
+      max-width: 100%;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .message-video {
+      max-width: 100%;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="app-container">
+      <!-- 左侧联系人列表 -->
+      <div class="contact-list">
+        <div class="search-container">
+          <input type="text" class="search-input" placeholder="搜索" v-model="searchQuery">
+        </div>
+        <div class="contacts">
+          <template v-if="filteredContacts.length > 0">
+            <div 
+              v-for="(contact, index) in filteredContacts" 
+              :key="contact.id" 
+              class="contact-item" 
+              :class="{ active: activeContactId === contact.id }"
+              @click="selectContact(contact.id)">
+              <div class="avatar">
+                <img :src="contact.avatar" :alt="contact.name">
+              </div>
+              <div class="contact-info">
+                <div class="contact-name">{{ contact.name }}</div>
+                <div class="last-message">{{ contact.lastMessage }}</div>
+              </div>
+              <div class="time">{{ contact.lastTime }}</div>
+            </div>
+          </template>
+          <div v-else class="empty-search">
+            <div class="empty-search-icon">🔍</div>
+            <div>没有找到相关联系人</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 中间聊天区域 -->
+      <div class="chat-area" v-if="activeContact">
+        <div class="chat-header">
+          <div class="chat-title">{{ activeContact.name }}</div>
+        </div>
+        <div class="message-container" ref="messageContainer">
+          <div 
+            v-for="(message, index) in activeContact.messages" 
+            :key="index" 
+            class="message" 
+            :class="message.outgoing ? 'outgoing' : 'incoming'">
+            <div class="avatar" v-if="!message.outgoing">
+              <img :src="activeContact.avatar" :alt="activeContact.name">
+            </div>
+            <div class="message-content">
+              {{ message.content }}
+              
+              <!-- 如果是图片消息 -->
+              <div v-if="message.image" class="message-media">
+                <img :src="message.image" alt="图片" class="message-image" @click="previewMedia(message.image)">
+              </div>
+              
+              <!-- 如果是视频消息 -->
+              <div v-if="message.video" class="message-media">
+                <video :src="message.video" class="message-video" controls></video>
+              </div>
+              
+              <!-- 如果是文件消息 -->
+              <div v-if="message.file" class="message-file">
+                <div class="message-file-icon">📄</div>
+                <div class="message-file-info">
+                  <div class="message-file-name">{{ message.fileName }}</div>
+                  <div class="message-file-size">{{ message.fileSize }}</div>
+                </div>
+                <div class="message-file-download">下载</div>
+              </div>
+              
+              <div class="message-time">{{ message.time }}</div>
+            </div>
+            <div class="avatar" v-if="message.outgoing">
+              <img src="https://via.placeholder.com/40" alt="我">
+            </div>
+          </div>
+        </div>
+        <div class="message-input">
+          <div class="input-container">
+            <div class="emoji-button" @click="toggleEmojiPicker">😊</div>
+            <div class="emoji-picker-container" v-if="showEmojiPicker" @click.stop>
+              <div v-for="(emoji, index) in emojiList" :key="index" class="emoji-item" @click="selectEmoji(emoji)">
+                {{ emoji }}
+              </div>
+            </div>
+            <div class="file-button" @click="triggerFileUpload">📎</div>
+            <input 
+              type="file" 
+              class="file-upload" 
+              ref="fileInput"
+              @change="handleFileUpload"
+              multiple
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt">
+            <div class="text-input-container">
+              <textarea 
+                class="text-input" 
+                v-model="newMessage" 
+                @keyup.enter="sendMessage"
+                placeholder="输入消息..."></textarea>
+              <div v-if="uploadFiles.length > 0" class="upload-preview">
+                <div v-for="(file, index) in uploadFiles" :key="index" class="upload-item" :class="{file: !isImageOrVideo(file.file)}">
+                  <template v-if="isImage(file.file)">
+                    <img :src="file.url" alt="图片预览" />
+                  </template>
+                  <template v-else-if="isVideo(file.file)">
+                    <video :src="file.url" preload="metadata"></video>
+                  </template>
+                  <template v-else>
+                    📄
+                  </template>
+                  <div class="upload-remove" @click.stop="removeUploadFile(index)">x</div>
+                </div>
+              </div>
+            </div>
+            <button class="send-button" @click="sendMessage" :disabled="!canSendMessage">发送</button>
+          </div>
+        </div>
+      </div>
+      <div class="chat-area" v-else>
+        <div class="empty-chat">
+          <p>请选择一个联系人开始聊天</p>
+        </div>
+      </div>
+      
+      <!-- 右侧详情区域 -->
+      <div class="detail-panel" v-if="activeContact">
+        <div class="detail-header">
+          <div class="detail-avatar">
+            <img :src="activeContact.avatar" :alt="activeContact.name">
+          </div>
+          <div class="detail-name">{{ activeContact.name }}</div>
+          <div class="detail-id">ID: {{ activeContact.id }}</div>
+        </div>
+        
+        <div class="detail-section">
+          <div class="section-title">基本信息</div>
+          <div class="detail-item">
+            <div class="item-icon">👤</div>
+            <div class="item-text">昵称: {{ activeContact.name }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="item-icon">🔖</div>
+            <div class="item-text">备注: {{ activeContact.remark || '无' }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="item-icon">📱</div>
+            <div class="item-text">手机: {{ activeContact.phone || '未设置' }}</div>
+          </div>
+        </div>
+        
+        <div class="detail-section">
+          <div class="section-title">聊天记录</div>
+          <div class="detail-item">
+            <div class="item-icon">🔍</div>
+            <div class="item-text">查找聊天记录</div>
+          </div>
+          <div class="detail-item">
+            <div class="item-icon">📂</div>
+            <div class="item-text">查看图片和文件</div>
+          </div>
+        </div>
+        
+        <div class="detail-section">
+          <div class="section-title">设置</div>
+          <div class="detail-item">
+            <div class="item-icon">🔕</div>
+            <div class="item-text">消息免打扰</div>
+          </div>
+          <div class="detail-item">
+            <div class="item-icon">📌</div>
+            <div class="item-text">置顶聊天</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 引入 Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <script>
+    const { createApp, ref, computed, nextTick, onMounted, watch } = Vue;
+    
+    createApp({
+      setup() {
+        // 获取本地存储数据
+        const savedContacts = localStorage.getItem('chatContacts');
+        const savedActiveContactId = localStorage.getItem('activeContactId');
+        // 联系人数据，优先使用本地存储的数据
+        const contacts = ref(savedContacts ? JSON.parse(savedContacts) : [
+          {
+            id: 1,
+            name: '张三',
+            avatar: 'https://via.placeholder.com/40/3498db/ffffff?text=张',
+            lastMessage: '最近在忙什么呢？',
+            lastTime: '10:23',
+            remark: '大学同学',
+            phone: '13800138000',
+            messages: [
+              {
+                content: '你好，最近在干什么呢？',
+                time: '昨天 15:30',
+                outgoing: false
+              },
+              {
+                content: '在忙项目，你呢？',
+                time: '昨天 15:35',
+                outgoing: true
+              },
+              {
+                content: '我也在忙工作，下周有空一起吃饭吧',
+                time: '昨天 15:40',
+                outgoing: false
+              },
+              {
+                content: '好啊，到时候再联系',
+                time: '昨天 15:42',
+                outgoing: true
+              },
+              {
+                content: '最近在忙什么呢？',
+                time: '今天 10:23',
+                outgoing: false
+              }
+            ]
+          },
+          {
+            id: 2,
+            name: '李四',
+            avatar: 'https://via.placeholder.com/40/e74c3c/ffffff?text=李',
+            lastMessage: '别忘了下周一的会议',
+            lastTime: '昨天',
+            remark: '项目经理',
+            phone: '13900139000',
+            messages: [
+              {
+                content: '别忘了下周一的会议',
+                time: '昨天 18:30',
+                outgoing: false
+              }
+            ]
+          },
+          {
+            id: 3,
+            name: '王五',
+            avatar: 'https://via.placeholder.com/40/2ecc71/ffffff?text=王',
+            lastMessage: '收到文件了吗？',
+            lastTime: '上周',
+            remark: '产品设计师',
+            phone: '13700137000',
+            messages: [
+              {
+                content: '我发了一份设计文件给你',
+                time: '上周三 14:20',
+                outgoing: false
+              },
+              {
+                content: '收到了，我已经在看了',
+                time: '上周三 14:25',
+                outgoing: true
+              },
+              {
+                content: '有几个地方需要修改，我稍后发反馈给你',
+                time: '上周三 14:30',
+                outgoing: true
+              },
+              {
+                content: '好的，我等你的反馈',
+                time: '上周三 14:35',
+                outgoing: false
+              },
+              {
+                content: '收到文件了吗？',
+                time: '上周五 09:30',
+                outgoing: false
+              }
+            ]
+          },
+          {
+            id: 4,
+            name: '小组群',
+            avatar: 'https://via.placeholder.com/40/9b59b6/ffffff?text=组',
+            lastMessage: '小李: 大家记得准时提交周报',
+            lastTime: '08:53',
+            remark: '项目组',
+            phone: '',
+            messages: [
+              {
+                content: '小李: 大家好，今天下午四点开会',
+                time: '昨天 08:30',
+                outgoing: false
+              },
+              {
+                content: '小王: 收到',
+                time: '昨天 08:35',
+                outgoing: false
+              },
+              {
+                content: '好的，我会准时参加',
+                time: '昨天 08:40',
+                outgoing: true
+              },
+              {
+                content: '小李: 大家记得准时提交周报',
+                time: '今天 08:53',
+                outgoing: false
+              }
+            ]
+          },
+          {
+            id: 5,
+            name: '刘六',
+            avatar: 'https://via.placeholder.com/40/f1c40f/ffffff?text=刘',
+            lastMessage: '周末有空一起打球吗？',
+            lastTime: '前天',
+            remark: '篮球伙伴',
+            phone: '13600136000',
+            messages: [
+              {
+                content: '周末有空一起打球吗？',
+                time: '前天 20:30',
+                outgoing: false
+              }
+            ]
+          }
+        ]);
+        
+        const searchQuery = ref('');
+        const activeContactId = ref(savedActiveContactId ? parseInt(savedActiveContactId) : null);
+        const newMessage = ref('');
+        const showEmojiPicker = ref(false);
+        const uploadFiles = ref([]);
+        const fileInput = ref(null);
+        
+        // 预设表情列表
+        const emojiList = ref([
+          '😀', '😁', '😂', '😃', '😄', '😅', '😆', '😇', 
+          '😈', '😉', '😊', '😋', '😌', '😍', '😎', '😏', 
+          '😐', '😑', '😒', '😓', '😔', '😕', '😖', '😗', 
+          '😘', '😙', '😚', '😛', '😜', '😝', '😞', '😟', 
+          '😠', '😡', '😢', '😣', '😤', '😥', '😦', '😧',
+          '😭', '😱', '😲', '😳', '😷', '🙂', '🙃', '🙄', 
+          '❤️', '👍', '👎', '👏', '👌', '👈', '👉', '👑',
+          '🎉', '🎄', '🎃', '🐶', '🐱', '🐭', '🐹', '🐰'
+        ]);
+        
+        // 根据搜索过滤联系人
+        const filteredContacts = computed(() => {
+          if (!searchQuery.value) return contacts.value;
+          
+          return contacts.value.filter(contact => 
+            contact.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            (contact.remark && contact.remark.toLowerCase().includes(searchQuery.value.toLowerCase()))
+          );
+        });
+        
+        // 获取当前选中的联系人
+        const activeContact = computed(() => {
+          if (!activeContactId.value) return null;
+          return contacts.value.find(contact => contact.id === activeContactId.value);
+        });
+        
+        // 消息容器引用，用于滚动
+        const messageContainer = ref(null);
+        
+        // 选择联系人
+        function selectContact(id) {
+          activeContactId.value = id;
+          
+          // 滚动到最新消息
+          nextTick(() => {
+            scrollToBottom();
+          });
+        }
+        
+        // 文件上传相关函数
+        function triggerFileUpload() {
+          fileInput.value.click();
+        }
+        
+        function handleFileUpload(event) {
+          const files = event.target.files;
+          if (!files.length) return;
+          
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            const url = URL.createObjectURL(file);
+            uploadFiles.value.push({
+              file,
+              url,
+              type: file.type,
+              name: file.name,
+              size: formatFileSize(file.size)
+            });
+          }
+          
+          // 重置文件输入框，允许再次选择相同文件
+          event.target.value = '';
+        }
+        
+        function removeUploadFile(index) {
+          if (uploadFiles.value[index].url) {
+            URL.revokeObjectURL(uploadFiles.value[index].url);
+          }
+          uploadFiles.value.splice(index, 1);
+        }
+        
+        function isImage(file) {
+          return file.type.startsWith('image/');
+        }
+        
+        function isVideo(file) {
+          return file.type.startsWith('video/');
+        }
+        
+        function isImageOrVideo(file) {
+          return isImage(file) || isVideo(file);
+        }
+        
+        function formatFileSize(bytes) {
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+        
+        function previewMedia(url) {
+          // 在这里可以实现全屏预览功能
+          window.open(url, '_blank');
+        }
+        
+        const canSendMessage = computed(() => {
+          return (newMessage.value.trim() !== '' || uploadFiles.value.length > 0) && activeContactId.value !== null;
+        });
+        
+        // 发送消息
+        function sendMessage() {
+          if (!canSendMessage.value) return;
+          
+          const contact = contacts.value.find(c => c.id === activeContactId.value);
+          
+          if (contact) {
+            // 添加新消息
+            const now = new Date();
+            const messageObj = {
+              content: newMessage.value.trim(),
+              timestamp: now.getTime(),
+              time: formatMessageTime(now),
+              outgoing: true
+            };
+            
+            // 处理上传的文件
+            uploadFiles.value.forEach(file => {
+              if (isImage(file.file)) {
+                messageObj.image = file.url;
+              } else if (isVideo(file.file)) {
+                messageObj.video = file.url;
+              } else {
+                messageObj.file = file.url;
+                messageObj.fileName = file.name;
+                messageObj.fileSize = file.size;
+              }
+            });
+            
+            contact.messages.push(messageObj);
+            
+            // 更新最后一条消息
+            contact.lastMessage = newMessage.value;
+            contact.lastTime = '刚刚';
+            
+            // 清空输入和文件
+            newMessage.value = '';
+            uploadFiles.value = [];
+            
+            // 滚动到底部
+            nextTick(() => {
+              scrollToBottom();
+            });
+            
+            // 模拟自动回复
+            setTimeout(() => {
+              const autoResponses = [
+                '好的，我知道了',
+                '收到',
+                '稍等，我处理一下',
+                '谢谢你的信息',
+                '留言收到，我稍后回复你'
+              ];
+              
+              const randomResponse = autoResponses[Math.floor(Math.random() * autoResponses.length)];
+              const responseTime = new Date();
+              
+              contact.messages.push({
+                content: randomResponse,
+                timestamp: responseTime.getTime(),
+                time: formatMessageTime(responseTime),
+                outgoing: false
+              });
+              
+              contact.lastMessage = randomResponse;
+              
+              nextTick(() => {
+                scrollToBottom();
+              });
+            }, 1000);
+          }
+        }
+        
+        // 切换表情选择器显示状态
+        function toggleEmojiPicker() {
+          showEmojiPicker.value = !showEmojiPicker.value;
+        }
+        
+        // 选择表情
+        function selectEmoji(emoji) {
+          newMessage.value += emoji;
+          showEmojiPicker.value = false;
+        }
+        
+        // 格式化消息时间
+        function formatMessageTime(date, isRealtime = false) {
+          if (!(date instanceof Date)) {
+            date = new Date(date);
+          }
+          
+          const now = new Date();
+          const diffSeconds = Math.floor((now - date) / 1000);
+          
+          // 小于10秒：显示“刚刚”
+          if (diffSeconds < 10) {
+            return '刚刚';
+          }
+          
+          // 小于1分钟：显示n秒
+          if (diffSeconds < 60) {
+            return `${diffSeconds}秒`;
+          }
+          
+          const diffMinutes = Math.floor(diffSeconds / 60);
+          
+          // 小于1小时：显示n分钟
+          if (diffMinutes < 60) {
+            return `${diffMinutes}分钟`;
+          }
+          
+          const diffHours = Math.floor(diffMinutes / 60);
+          const sameDay = (
+            date.getDate() === now.getDate() && 
+            date.getMonth() === now.getMonth() && 
+            date.getFullYear() === now.getFullYear()
+          );
+          
+          // 小于24小时且是当天：显示“n小时”
+          if (diffHours < 24 && sameDay) {
+            return `${diffHours}小时`;
+          }
+          
+          // 检查是否是昨天
+          const yesterday = new Date(now);
+          yesterday.setDate(yesterday.getDate() - 1);
+          const isYesterday = (
+            date.getDate() === yesterday.getDate() && 
+            date.getMonth() === yesterday.getMonth() && 
+            date.getFullYear() === yesterday.getFullYear()
+          );
+          
+          // 是昨天：显示“昨天 HH:MM”
+          if (isYesterday) {
+            const hours = date.getHours().toString().padStart(2, '0');
+            const minutes = date.getMinutes().toString().padStart(2, '0');
+            return `昨天 ${hours}:${minutes}`;
+          }
+          
+          // 更早的时间：显示“MM-DD HH:MM”
+          const month = (date.getMonth() + 1).toString().padStart(2, '0');
+          const day = date.getDate().toString().padStart(2, '0');
+          const hours = date.getHours().toString().padStart(2, '0');
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          
+          return `${month}-${day} ${hours}:${minutes}`;
+        }
+        
+        // 更新所有消息时间显示
+        function updateAllMessageTimes() {
+          contacts.value.forEach(contact => {
+            contact.messages.forEach(message => {
+              if (message.timestamp) {
+                message.time = formatMessageTime(message.timestamp);
+              }
+            });
+          });
+        }
+        
+        // 每分钟更新一次消息时间显示
+        setInterval(updateAllMessageTimes, 60000);
+        
+        // 点击页面其他区域关闭表情选择器
+        function closeEmojiPicker(event) {
+          if (showEmojiPicker.value && !event.target.closest('.emoji-picker-container') && !event.target.closest('.emoji-button')) {
+            showEmojiPicker.value = false;
+          }
+        }
+        
+        // 滚动到最新消息
+        function scrollToBottom() {
+          if (messageContainer.value) {
+            messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+          }
+        }
+        
+        // 监听联系人变化，保存到本地存储
+        watch(contacts, (newContacts) => {
+          localStorage.setItem('chatContacts', JSON.stringify(newContacts));
+        }, { deep: true });
+        
+        // 监听当前选中的联系人变化
+        watch(activeContactId, (newId) => {
+          localStorage.setItem('activeContactId', newId);
+        });
+        
+        // 初始化时选择第一个联系人
+        onMounted(() => {
+          // 添加点击事件监听，关闭表情选择器
+          document.addEventListener('click', closeEmojiPicker);
+          
+          if (contacts.value.length > 0) {
+            selectContact(contacts.value[0].id);
+          }
+        });
+        
+        return {
+          contacts,
+          searchQuery,
+          filteredContacts,
+          activeContactId,
+          activeContact,
+          newMessage,
+          messageContainer,
+          selectContact,
+          sendMessage,
+          showEmojiPicker,
+          toggleEmojiPicker,
+          selectEmoji,
+          emojiList,
+          uploadFiles,
+          fileInput,
+          triggerFileUpload,
+          handleFileUpload,
+          removeUploadFile,
+          isImage,
+          isVideo,
+          isImageOrVideo,
+          previewMedia,
+          canSendMessage
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>

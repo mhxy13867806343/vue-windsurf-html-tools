@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>邮箱列表 - QQ邮箱风格</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    
+    body {
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    
+    .container {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: 200px;
+      background-color: #2e3846;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .sidebar-header {
+      padding: 15px;
+      background-color: #252d39;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    
+    .logo {
+      font-size: 18px;
+      font-weight: 600;
+      color: #fff;
+    }
+    
+    .compose-btn {
+      display: block;
+      background-color: #12b7f5;
+      color: #fff;
+      text-align: center;
+      padding: 10px;
+      margin: 15px;
+      border-radius: 4px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .folder-list {
+      flex: 1;
+    }
+    
+    .folder-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      cursor: pointer;
+    }
+    
+    .folder-item:hover {
+      background-color: #394553;
+    }
+    
+    .folder-item.active {
+      background-color: #394553;
+      border-left: 3px solid #12b7f5;
+    }
+    
+    .folder-icon {
+      margin-right: 10px;
+      font-size: 16px;
+      width: 20px;
+      text-align: center;
+    }
+    
+    .folder-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .folder-count {
+      background-color: #12b7f5;
+      color: #fff;
+      border-radius: 10px;
+      padding: 2px 6px;
+      font-size: 12px;
+      min-width: 20px;
+      text-align: center;
+    }
+    
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .toolbar {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eaeaea;
+      background-color: #fff;
+    }
+    
+    .toolbar-btn {
+      padding: 6px 10px;
+      margin-right: 5px;
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+    }
+    
+    .toolbar-btn:hover {
+      background-color: #eaeaea;
+    }
+    
+    .toolbar-icon {
+      margin-right: 5px;
+    }
+    
+    .search-bar {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      background-color: #f5f5f5;
+      border-radius: 3px;
+      padding: 6px 10px;
+      border: 1px solid #ddd;
+    }
+    
+    .search-icon {
+      margin-right: 5px;
+      color: #999;
+    }
+    
+    .search-input {
+      border: none;
+      background: transparent;
+      outline: none;
+      font-size: 14px;
+    }
+    
+    .email-list-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 15px;
+      border-bottom: 1px solid #eaeaea;
+      background-color: #f9f9f9;
+      font-weight: 500;
+      color: #666;
+    }
+    
+    .checkbox-col {
+      width: 30px;
+    }
+    
+    .star-col {
+      width: 30px;
+    }
+    
+    .sender-col {
+      width: 180px;
+    }
+    
+    .subject-col {
+      flex: 1;
+    }
+    
+    .attachment-col {
+      width: 30px;
+    }
+    
+    .date-col {
+      width: 100px;
+      text-align: right;
+    }
+    
+    .email-list {
+      flex: 1;
+      overflow-y: auto;
+      background-color: #fff;
+    }
+    
+    .email-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 15px;
+      border-bottom: 1px solid #eaeaea;
+      cursor: pointer;
+    }
+    
+    .email-item:hover {
+      background-color: #f5f5f5;
+    }
+    
+    .email-item.unread {
+      background-color: #edf4fc;
+    }
+    
+    .email-item.unread:hover {
+      background-color: #e3edfb;
+    }
+    
+    .email-item.selected {
+      background-color: #e3edfb;
+    }
+    
+    .checkbox {
+      width: 30px;
+    }
+    
+    .star {
+      width: 30px;
+      color: #ddd;
+      cursor: pointer;
+    }
+    
+    .star.active {
+      color: #f8ca00;
+    }
+    
+    .sender {
+      width: 180px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .email-item.unread .sender {
+      font-weight: 600;
+    }
+    
+    .subject {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 10px;
+    }
+    
+    .snippet {
+      color: #999;
+    }
+    
+    .email-item.unread .subject {
+      font-weight: 600;
+      color: #12b7f5;
+    }
+    
+    .attachment {
+      width: 30px;
+      color: #999;
+    }
+    
+    .date {
+      width: 100px;
+      text-align: right;
+      color: #999;
+      font-size: 13px;
+    }
+    
+    .email-item.unread .date {
+      color: #333;
+      font-weight: 500;
+    }
+    
+    .status-bar {
+      padding: 10px 15px;
+      font-size: 13px;
+      color: #666;
+      background-color: #f9f9f9;
+      border-top: 1px solid #eaeaea;
+      display: flex;
+      justify-content: space-between;
+    }
+    
+    .pagination {
+      display: flex;
+      align-items: center;
+    }
+    
+    .page-btn {
+      padding: 3px 8px;
+      margin: 0 2px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    
+    .page-btn:hover {
+      background-color: #eaeaea;
+    }
+    
+    .page-btn.active {
+      background-color: #12b7f5;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="container">
+      <!-- 左侧边栏 -->
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">QQ邮箱</div>
+          <div class="user-avatar">👤</div>
+        </div>
+        
+        <div class="compose-btn" @click="composeEmail">
+          写邮件
+        </div>
+        
+        <div class="folder-list">
+          <div 
+            v-for="folder in folders" 
+            :key="folder.id" 
+            class="folder-item" 
+            :class="{ active: activeFolder === folder.id }" 
+            @click="activeFolder = folder.id"
+          >
+            <div class="folder-icon">{{ folder.icon }}</div>
+            <div class="folder-name">{{ folder.name }}</div>
+            <div class="folder-count" v-if="folder.unread">{{ folder.unread }}</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 主内容区 -->
+      <div class="main-content">
+        <div class="toolbar">
+          <div class="toolbar-btn" @click="selectAll">
+            <div class="toolbar-icon">☑️</div>
+            <div>全选</div>
+          </div>
+          
+          <div class="toolbar-btn" @click="markAsRead">
+            <div class="toolbar-icon">✓</div>
+            <div>标为已读</div>
+          </div>
+          
+          <div class="toolbar-btn" @click="deleteEmails">
+            <div class="toolbar-icon">🗑️</div>
+            <div>删除</div>
+          </div>
+          
+          <div class="search-bar">
+            <div class="search-icon">🔍</div>
+            <input type="text" class="search-input" placeholder="搜索邮件" v-model="searchQuery">
+          </div>
+        </div>
+        
+        <div class="email-list-header">
+          <div class="checkbox-col">☑️</div>
+          <div class="star-col">★</div>
+          <div class="sender-col">发件人</div>
+          <div class="subject-col">主题</div>
+          <div class="attachment-col">📎</div>
+          <div class="date-col">日期</div>
+        </div>
+        
+        <div class="email-list">
+          <div 
+            v-for="(email, index) in filteredEmails" 
+            :key="email.id"
+            class="email-item" 
+            :class="{ unread: email.unread, selected: email.selected }"
+            @click="toggleSelect(index)"
+          >
+            <div class="checkbox" @click.stop="toggleSelect(index)">
+              {{ email.selected ? '☑️' : '☐' }}
+            </div>
+            
+            <div 
+              class="star" 
+              :class="{ active: email.starred }" 
+              @click.stop="toggleStar(index)"
+            >
+              {{ email.starred ? '★' : '☆' }}
+            </div>
+            
+            <div class="sender">{{ email.sender }}</div>
+            <div class="subject">
+              {{ email.subject }} 
+              <span class="snippet">- {{ email.snippet }}</span>
+            </div>
+            
+            <div class="attachment" v-if="email.hasAttachment">📎</div>
+            <div class="attachment" v-else></div>
+            
+            <div class="date">{{ email.date }}</div>
+          </div>
+          
+          <div v-if="filteredEmails.length === 0" style="padding: 20px; text-align: center; color: #999;">
+            没有找到邮件
+          </div>
+        </div>
+        
+        <div class="status-bar">
+          <div>共 {{ totalEmails }} 封邮件，已选择 {{ selectedCount }} 封</div>
+          
+          <div class="pagination">
+            <div 
+              v-for="n in 5" 
+              :key="n"
+              class="page-btn"
+              :class="{ active: currentPage === n }"
+              @click="currentPage = n"
+            >
+              {{ n }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 引入Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  
+  <script>
+    const { createApp, ref, computed } = Vue;
+    
+    createApp({
+      setup() {
+        // 当前活跃文件夹
+        const activeFolder = ref('inbox');
+        
+        // 文件夹列表
+        const folders = [
+          { id: 'inbox', name: '收件箱', icon: '📥', unread: 5 },
+          { id: 'starred', name: '星标邮件', icon: '⭐', unread: 0 },
+          { id: 'sent', name: '已发送', icon: '📤', unread: 0 },
+          { id: 'drafts', name: '草稿箱', icon: '📝', unread: 2 },
+          { id: 'trash', name: '已删除', icon: '🗑️', unread: 0 },
+          { id: 'spam', name: '垃圾箱', icon: '⚠️', unread: 3 },
+          { id: 'important', name: '重要', icon: '❗', unread: 0 },
+          { id: 'work', name: '工作', icon: '💼', unread: 0 },
+          { id: 'personal', name: '个人', icon: '👤', unread: 0 },
+          { id: 'bills', name: '账单', icon: '💰', unread: 0 }
+        ];
+        
+        // 电子邮件数据
+        const emails = [
+          {
+            id: 1,
+            sender: 'GitHub',
+            subject: '您的仓库收到了新的 Pull Request',
+            snippet: '用户 zhang_san 请求合并分支 feature/login 到 master',
+            date: '09:45',
+            hasAttachment: false,
+            starred: true,
+            unread: true,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 2,
+            sender: 'Slack',
+            subject: '新消息提醒',
+            snippet: '项目总监: 请大家参加今天下午3点的会议讨论项目进度',
+            date: '昨天',
+            hasAttachment: false,
+            starred: false,
+            unread: true,
+            selected: false,
+            folder: 'sent'
+          },
+          {
+            id: 3,
+            sender: 'Apple',
+            subject: '您的 App Store 订阅即将到期',
+            snippet: '您的 iCloud 存储订阅将于 7 天后到期，请及时续费以避免服务中断',
+            date: '昨天',
+            hasAttachment: false,
+            starred: false,
+            unread: true,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 4,
+            sender: '张经理',
+            subject: '关于第三季度财务报表',
+            snippet: '请查收附件中的财务报表，并于本周五前给出反馈意见',
+            date: '6月5日',
+            hasAttachment: true,
+            starred: true,
+            unread: true,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 5,
+            sender: '会议室预订系统',
+            subject: '会议室预订成功',
+            snippet: '您已成功预订207会议室，时间：6月7日 14:00-16:00',
+            date: '6月5日',
+            hasAttachment: false,
+            starred: false,
+            unread: false,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 6,
+            sender: '李四',
+            subject: '周末聚会通知',
+            snippet: '本周六下午在城南咖啡厅聚会，请准时参加',
+            date: '6月4日',
+            hasAttachment: false,
+            starred: true,
+            unread: false,
+            selected: false,
+            folder: 'work'
+          },
+          {
+            id: 7,
+            sender: 'Netflix',
+            subject: '新剧上线通知',
+            snippet: '《星际穿越2》已上线，根据您的观看记录推荐',
+            date: '6月3日',
+            hasAttachment: true,
+            starred: false,
+            unread: false,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 8,
+            sender: '系统管理员',
+            subject: '账户安全提醒',
+            snippet: '您的账号近期在新设备上登录，如非本人操作请及时修改密码',
+            date: '6月2日',
+            hasAttachment: false,
+            starred: false,
+            unread: false,
+            selected: false,
+            folder: 'inbox'
+          },
+          {
+            id: 9,
+            sender: '王五',
+            subject: '项目进度汇报',
+            snippet: '附件是本周的项目进度报告，请查收',
+            date: '6月1日',
+            hasAttachment: true,
+            starred: false,
+            unread: false,
+            selected: false,
+            folder: 'bills'
+          },
+          {
+            id: 10,
+            sender: '人力资源部',
+            subject: '五月份工资条',
+            snippet: '您的五月份工资已发放，请查收附件中的电子工资条',
+            date: '5月31日',
+            hasAttachment: true,
+            starred: true,
+            unread: false,
+            selected: false,
+            folder: 'personal'
+          }
+        ];
+        
+        // 搜索查询
+        const searchQuery = ref('');
+        
+        // 当前页
+        const currentPage = ref(1);
+        
+        // 按文件夹和搜索过滤邮件
+        const filteredEmails = computed(() => {
+          let result = emails.filter(email => email.folder === activeFolder.value);
+          
+          if (searchQuery.value.trim() !== '') {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(email => 
+              email.sender.toLowerCase().includes(query) || 
+              email.subject.toLowerCase().includes(query) || 
+              email.snippet.toLowerCase().includes(query)
+            );
+          }
+          
+          return result;
+        });
+        
+        // 总邮件数
+        const totalEmails = computed(() => {
+          return emails.filter(email => email.folder === activeFolder.value).length;
+        });
+        
+        // 已选择邮件数
+        const selectedCount = computed(() => {
+          return emails.filter(email => email.selected && email.folder === activeFolder.value).length;
+        });
+        
+        // 切换选择状态
+        const toggleSelect = (index) => {
+          filteredEmails.value[index].selected = !filteredEmails.value[index].selected;
+        };
+        
+        // 切换星标状态
+        const toggleStar = (index) => {
+          filteredEmails.value[index].starred = !filteredEmails.value[index].starred;
+        };
+        
+        // 全选/取消全选
+        const selectAll = () => {
+          const allSelected = filteredEmails.value.every(email => email.selected);
+          filteredEmails.value.forEach(email => email.selected = !allSelected);
+        };
+        
+        // 标记为已读
+        const markAsRead = () => {
+          filteredEmails.value.forEach(email => {
+            if (email.selected && email.unread) {
+              email.unread = false;
+              
+              // 更新文件夹未读计数
+              const folder = folders.find(f => f.id === email.folder);
+              if (folder && folder.unread > 0) {
+                folder.unread--;
+              }
+            }
+          });
+        };
+        
+        // 删除邮件
+        const deleteEmails = () => {
+          filteredEmails.value.forEach(email => {
+            if (email.selected) {
+              email.folder = 'trash';
+            }
+          });
+        };
+        
+        // 写新邮件
+        const composeEmail = () => {
+          alert('写新邮件功能暂未实现');
+        };
+        
+        return {
+          activeFolder,
+          folders,
+          emails,
+          filteredEmails,
+          searchQuery,
+          currentPage,
+          totalEmails,
+          selectedCount,
+          toggleSelect,
+          toggleStar,
+          selectAll,
+          markAsRead,
+          deleteEmails,
+          composeEmail
+        };
+      }
+    }).mount('#app');
+  </script>
